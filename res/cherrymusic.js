@@ -263,7 +263,7 @@ function search(append){
         'value' : $('#searchfield input').val()
     };
     var success = function(data){
-        MediaBrowser('#searchresults', jQuery.parseJSON(data));
+        new MediaBrowser('#searchresults', jQuery.parseJSON(data));
         busy('#searchform').fadeOut('fast');
     };
     var error = function(){
@@ -359,11 +359,11 @@ function savePlaylist(plid,playlistname,ispublic,overwrite){
         playlistManager.refresh();
         playlistManager.showPlaylist(plid);
     }
-    busy('.playlist-panel').hide().fadeIn('fast');
+    busy('#playlist-panel').hide().fadeIn('fast');
     api(data,
         success,
         errorFunc('error saving playlist'),
-        function(){busy('.playlist-panel').fadeOut('fast')});
+        function(){busy('#playlist-panel').fadeOut('fast')});
 }
 function getAddrPort(){
     m = (window.location+"").match(/https?:\/\/(.+?):?(\d+).*/);
@@ -395,35 +395,34 @@ function showPlaylists(){
     "use strict";
     var success = function(data){
             var addressAndPort = getAddrPort();
-            var pls = '<ul>';
+            var pls = '<ul class="playlist-browser-list">';
             $.each($.parseJSON(data),function(i,e){
                 pls += Mustache.render([
-                '<li id="playlist{{playlistid}}">',
-                    '<div class="remoteplaylist">',
-                        '<div class="playlisttitle">',
-                            '<a href="javascript:;" onclick="loadPlaylist({{playlistid}}, \'{{playlistlabel}}\')">',
-                            '{{playlistlabel}}',
-                            '</a>',
-                        '</div>',
-                    
-                        '{{#isowner}}',
+                '<li class="playlist-browser-list-item" id="playlist{{playlistid}}">',
+                    '<div class="playlist-browser-list-item-container">',
+                        '<div>',
+                            '<div class="playlisttitle">',
+                                '<a href="javascript:;" onclick="loadPlaylist({{playlistid}}, \'{{playlistlabel}}\')">',
+                                '{{playlistlabel}}',
+                                '</a>',
+                            '</div>',
                             '<div class="ispublic">',
+                                '{{#isowner}}',
                                 '<span class="label {{publiclabelclass}}">',
-                                    '{{publicorprivate}}',
+                                    'public',
                                     '<input onchange="changePlaylist({{playlistid}},\'public\',$(this).is(\':checked\'))" type="checkbox" {{publicchecked}}>',
-                                    '</span>',
+                                '</span>',
+                                '{{/isowner}}',                   
                             '</div>',
-                        '{{/isowner}}',                   
-                        
-                        '{{{usernamelabel}}}',
-                        
-                        '{{#candelete}}',
+                            '{{{usernamelabel}}}',
+                            
+                            '{{#candelete}}',
                             '<div class="deletebutton">',
-                                '<a href="javascript:;" class="btn btn-mini btn-danger" onclick="confirmDeletePlaylist({{playlistid}}, \'{{playlistlabel}}\')">x</a>',
+                                '<a href="javascript:;" class="btn btn-xs btn-danger" onclick="confirmDeletePlaylist({{playlistid}}, \'{{playlistlabel}}\')">x</a>',
                             '</div>',
-                        '{{/candelete}}',
-                        
-                        '{{#showdownloadbuttons}}',
+                            '{{/candelete}}',
+                            
+                            '{{#showdownloadbuttons}}',
                             '<div class="dlbutton">',
                                 '<a class="btn btn-mini" href="/api/downloadpls?value={{dlval}}">',
                                 '&darr;&nbsp;PLS',
@@ -434,8 +433,8 @@ function showPlaylists(){
                                 '&darr;&nbsp;M3U',
                                 '</a>',
                             '</div>',
-                        '{{/showdownloadbuttons}}',
-                        
+                            '{{/showdownloadbuttons}}',
+                        '</div>',
                     '</div>',
                     '<div class="playlistcontent">',
                     '</div>',
@@ -453,8 +452,7 @@ function showPlaylists(){
                     username: e['username'],
                     usernamelabel: renderUserNameLabel(e['username']),
                     publicchecked: e['public'] ? 'checked="checked"' : '',
-                    publicorprivate: e['public'] ? 'public' : 'private',
-                    publiclabelclass : e['public'] ? 'label-success' : 'label-info',
+                    publiclabelclass : e['public'] ? 'label-success' : 'label-default',
                     }
                 );
             });
@@ -462,17 +460,17 @@ function showPlaylists(){
             $('.available-playlists').html(pls);
             $('.hideplayliststab').slideDown('fast');
             $('.showplayliststab').slideUp('fast');
-            $('.available-playlists').slideDown();
+            $('.available-playlists').show();
         };
 
     var error = errorFunc('error loading external playlists');
 
-    $('.available-playlists').slideUp('fast');
-    busy('.playlist-panel').hide().fadeIn('fast');
+    //$('.available-playlists').slideUp('fast');
+    busy('#playlist-panel').hide().fadeIn('fast');
     api('showplaylists',
         success,
         error,
-        function(){busy('.playlist-panel').fadeOut('fast')}
+        function(){busy('#playlist-panel').fadeOut('fast')}
     );
 }
 
@@ -495,7 +493,7 @@ function changePlaylist(plid,attrname,value){
     window.console.log(plid);
     window.console.log(attrname);
     window.console.log(value);
-    busy('.playlist-panel').hide().fadeIn('fast');
+    busy('#playlist-panel').hide().fadeIn('fast');
     api(
         {
             action:'changeplaylist',
@@ -509,18 +507,18 @@ function changePlaylist(plid,attrname,value){
             showPlaylists();
         },
         errorFunc('error changing playlist attribute'),
-        function(){busy('.playlist-panel').fadeOut('fast')}
+        function(){busy('#playlist-panel').fadeOut('fast')}
     );
 }
 
 function confirmDeletePlaylist(id,title){
     $('#deletePlaylistConfirmButton').off();
     $('#deletePlaylistConfirmButton').on('click', function(){
-        busy('.playlist-panel').hide().fadeIn('fast');
+        busy('#playlist-panel').hide().fadeIn('fast');
         api({action:'deleteplaylist', value: id},
             false,
             errorFunc('error deleting playlist'),
-            function(){busy('.playlist-panel').fadeOut('fast')}
+            function(){busy('#playlist-panel').fadeOut('fast')}
         );
         $('#dialog').fadeOut('fast');
         showPlaylists();
@@ -537,13 +535,13 @@ function loadPlaylist(playlistid, playlistlabel){
         var data = {'action':'loadplaylist',
                     'value': playlistid };
         var success = function(data){
-            MediaBrowser(pldomid, jQuery.parseJSON(data), true, playlistlabel);
+            new MediaBrowser(pldomid, jQuery.parseJSON(data), true, playlistlabel);
         };
-        busy('.playlist-panel').hide().fadeIn('fast');
+        busy('#playlist-panel').hide().fadeIn('fast');
         api(data,
             success,
             errorFunc('error loading external playlist'),
-            function(){busy('.playlist-panel').fadeOut('fast')}
+            function(){busy('#playlist-panel').fadeOut('fast')}
         );
     } else {
         $(pldomid).slideToggle('slow');
@@ -766,7 +764,7 @@ function enableJplayerDebugging(){
 function loadBrowser(){
     var data = { 'action' : 'listdir' };
     var success = function(data){
-        MediaBrowser('#searchresults', jQuery.parseJSON(data));
+        new MediaBrowser('#searchresults', jQuery.parseJSON(data));
     };
     busy('#searchfield').hide().fadeIn('fast');
     api(data,
@@ -934,7 +932,7 @@ function enableMobileSwiping(){
     var wrap = $('.swipe-panels>div');
     var width = wrap.width();
     var sp = $('.search-panel').get(0);
-    var pp = $('.playlist-panel').get(0);
+    var pp = $('#playlist-panel').get(0);
     //set up css rules for swiping:
     $('body').css('overflow','hidden');
     $('body').css('height','100%');
@@ -942,9 +940,9 @@ function enableMobileSwiping(){
     $('.search-panel').css('position', 'absolute');
     $('.search-panel').css('top', '165px');
     $('.search-panel').css('left', '0');
-    $('.playlist-panel').css('position', 'absolute');
-    $('.playlist-panel').css('top', '165px');
-    $('.playlist-panel').css('left', '100%');
+    $('#playlist-panel').css('position', 'absolute');
+    $('#playlist-panel').css('top', '165px');
+    $('#playlist-panel').css('left', '100%');
     var leftoffset = 0;
     $('body')
     .on('movestart', function(e) {
@@ -973,21 +971,21 @@ function enableMobileSwiping(){
     .on('moveend', function(e) {
        if(parseInt(pp.style.left) < 50){
            $('.search-panel').animate({left: '-100%'});
-           $('.playlist-panel').animate({left: '0%'});
+           $('#playlist-panel').animate({left: '0%'});
            $('.search-panel').removeClass('active-swipe');
-           $('.playlist-panel').addClass('active-swipe');
+           $('#playlist-panel').addClass('active-swipe');
        } else {
             $('.search-panel').animate({left: '0%'});
-            $('.playlist-panel').animate({left: '100%'});
+            $('#playlist-panel').animate({left: '100%'});
             $('.search-panel').addClass('active-swipe');
-            $('.playlist-panel').removeClass('active-swipe');
+            $('#playlist-panel').removeClass('active-swipe');
        }
     });
 }
 function disableMobileSwiping(){
     $('body').off('movestart').off('move').off('moveend');
     $('.search-panel').removeAttr('style');
-    $('.playlist-panel').removeAttr('style');
+    $('#playlist-panel').removeAttr('style');
     $('body').removeAttr('style');
     $('html').removeAttr('style');
 }

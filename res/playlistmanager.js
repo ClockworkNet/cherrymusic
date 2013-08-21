@@ -417,14 +417,18 @@ PlaylistManager.prototype = {
                 remainingStr = remaintracks.length+' remaining tracks';
             }
             if(littleTimeLeft){
-                $('.remaining-tracks-or-time').addClass('label-important');
-                $('.playlist-progress-bar .bar').addClass('bar-danger');
+                $('.remaining-tracks-or-time').removeClass('label-default');
+                $('.remaining-tracks-or-time').addClass('label-danger');
+                $('.playlist-progress-bar .progress-bar').addClass('progress-bar-danger');
+                $('.playlist-progress-bar .progress-bar').removeClass('progress-bar-default');
             } else {
-                $('.remaining-tracks-or-time').removeClass('label-important');
-                $('.playlist-progress-bar .bar').removeClass('bar-danger');
+                $('.remaining-tracks-or-time').addClass('label-default');
+                $('.remaining-tracks-or-time').removeClass('label-danger');
+                $('.playlist-progress-bar .progress-bar').addClass('progress-bar-default');
+                $('.playlist-progress-bar .progress-bar').removeClass('progress-bar-danger');
             }
             $('.remaining-tracks-or-time').html(remainingStr);           
-            $('.playlist-progress-bar .bar').css('width',parseInt(100-proc*100)+'%');
+            $('.playlist-progress-bar .progress-bar').css('width',parseInt(100-proc*100)+'%');
         }
     },
     refreshTabs : function(){
@@ -458,7 +462,8 @@ PlaylistManager.prototype = {
             }
             pltabs += '</a></li>';
         }
-        pltabs += '<li><a href="#" onclick="playlistManager.showPlaylistBrowser()"><b>+</b></a></li>';
+        pltabs += '<li><a href="#" onclick="playlistManager.newPlaylist()"><b>+</b></a></li>';
+        pltabs += '<li><a href="#" onclick="playlistManager.showPlaylistBrowser()"><b>load playlist</b></a></li>';
         $(self.cssSelectorPlaylistChooser+' ul').empty()
         $(self.cssSelectorPlaylistChooser+' ul').append(pltabs);
     },

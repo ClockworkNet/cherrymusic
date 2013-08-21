@@ -31,13 +31,99 @@
 RENDERING
 ********/
 
-MediaBrowser = function(cssSelector, json, isplaylist, playlistlabel){
+MediaBrowser = function(cssSelector, json, isplaylist, playlistlabel, parent){
     "use strict";
-    var s = MediaBrowser.static
+    this.listing_data_stack = [json];
+    this.parent = parent;
+    this.cssSelector = cssSelector;
+
+    var self = this;
+    
+    var listdirclick = function(){
+        "use strict";
+        $(self.cssSelector + " > .cm-media-list").animate({left: '-100%'}, {duration: 500, queue: false});
+        
+        var directory = $(this).attr("dir");
+        var compactlisting = $(this).is("[filter]");
+        var action = 'listdir';
+        var dirdata = {'directory' : directory};
+        if(compactlisting){
+            action = 'compactlistdir';
+            dirdata['filter'] = $(this).attr("filter");
+        }
+        var currdir = this;
+        var success = function(data){
+            var json = jQuery.parseJSON(data);
+            self.listing_data_stack.push(json)
+            self.render();
+        };
+        busy($(currdir).parent()).hide().fadeIn();
+        api({action: action,
+             value: JSON.stringify(dirdata)},
+            success,
+            errorFunc('unable to list compact directory'),
+            function(){busy($(currdir).parent()).fadeOut('fast')});
+        $(this).blur();
+        return false;
+    }
+    
+    this.render = function(){
+        var stack_top = self.listing_data_stack[self.listing_data_stack.length-1];
+        //split into categories:
+        var folders = [];
+        var files = [];
+        var compact = [];
+        for(var i=0; i < stack_top.length; i++){
+            var e = stack_top[i];
+            if("file" == e.type){
+                files.push(e);
+            } else if("dir" == e.type){
+                folders.push(e);
+            } else if("compact" == e.type){
+                compact.push(e);
+            } else {
+                window.console.errror('unknown media browser item '+t);
+            }
+        }
+        var filehtml = MediaBrowser.static._renderList(files);
+        var folderhtml = MediaBrowser.static._renderList(folders);
+        var compacthtml = MediaBrowser.static._renderList(compact);
+        
+        var html = '';
+        if('' != filehtml){
+            html += '<h3>Tracks</h3><ul class="cm-media-list">'+filehtml+'</ul>';
+        }
+        if('' != folderhtml){
+            html += '<h3>Collections</h3><ul class="cm-media-list">'+folderhtml+'</ul>';
+        }
+        if('' != compacthtml){
+            html += '<h3>Compact</h3><ul class="cm-media-list">'+compacthtml+'</ul>';
+        }
+        if('' == html){
+            html = '<ul class="cm-media-list">'+MediaBrowser.static._renderMessage('No playable media files here.')+'</ul>';
+        }
+        
+        $(self.cssSelector).html(html);
+        if(self.listing_data_stack.length > 1){
+            var node = $('<div class="cm-media-list-item cm-media-list-parent-item">'+
+            '   <a class="cm-media-list-parent" href="javascript:;">'+
+            '   <span class="glyphicon glyphicon-arrow-left"></span>'+
+            '</a></div>');
+            node.on('click',function(){
+                self.listing_data_stack.pop();
+                self.render();
+            });
+            $(this.cssSelector).prepend(node);
+        }
+        playlistManager.setTrackDestinationLabel();
+        MediaBrowser.static.albumArtLoader(cssSelector);
+    }
+    
+    this.render();
     $(cssSelector).off('click');
-    $(cssSelector).on('click', '.listdir', s.listdirclick);
-    $(cssSelector).on('click', '.compactlistdir', s.listdirclick);
-    $(cssSelector).on('click', '.mp3file', s.addThisTrackToPlaylist);
+    $(cssSelector).on('click', '.list-dir', listdirclick);
+    $(cssSelector).on('click', '.compact-list-dir', listdirclick);
+    $(cssSelector).on('click', '.musicfile', MediaBrowser.static.addThisTrackToPlaylist);
     $(cssSelector).on('click', '.addAllToPlaylist', function() {
         if(isplaylist){
             var pl = playlistManager.newPlaylist([], playlistlabel);
@@ -51,9 +137,8 @@ MediaBrowser = function(cssSelector, json, isplaylist, playlistlabel){
         $(this).blur();
         return false;
     });
-    $(cssSelector).html(s._renderList(json));
-    playlistManager.setTrackDestinationLabel();
-    s.albumArtLoader(cssSelector);
+    
+   
 }
 MediaBrowser.static = {
     _renderList: function (l){
@@ -69,7 +154,7 @@ MediaBrowser.static = {
         });
         var addAll = '';
         if(foundMp3){
-            addAll =    '<li><a class="addAllToPlaylist" href="javascript:;">'+
+            addAll =    '<li><a class="cm-media-list-item addAllToPlaylist" href="javascript:;">'+
                             '<span class="add-track-destination">load playlist</span>'+
                         '</a></li>';
         }
@@ -88,27 +173,28 @@ MediaBrowser.static = {
                     window.console.log('cannot render unknown type '+e.type);
             }
         });
-        if(html==""){
-            html += MediaBrowser.static._renderMessage('No playable media files here.');
-        }
-        return '<ul>'+addAll+html+'</ul>';
+        return html;
     },
     
     _renderMessage : function(msg){
         return [
-            '<li class="fileinlist">',
+            '<li class="fileinlist cm-media-list-item">',
                 '<div style="text-align: center">'+msg+'</div>',
             '</li>'
         ].join('');
     },
     _renderFile : function(json){
         return Mustache.render([
-            '<li class="fileinlist">',
-                '<a title="{{label}}" href="javascript:;" class="mp3file" path="{{fileurl}}">',
+            '<li class="fileinlist cm-media-list-item">',
+                '<a title="{{label}}" href="javascript:;" class="musicfile" path="{{fileurl}}">',
+                    '<span class="glyphicon glyphicon-music"></span>',
+                    '<span class="simplelabel">',
+                        '{{label}}',
+                    '</span>',
                     '<span class="fullpathlabel">',
                         '{{fullpath}}',
                     '</span>',
-                    '{{label}}',
+                    
                 '</a>',
             '</li>'
         ].join(''),
@@ -120,13 +206,13 @@ MediaBrowser.static = {
     },
     _renderDirectory : function(json){
         return Mustache.render([
-            '<li>',
-                '<a dir="{{dirpath}}" href="javascript:;" class="listdir">',
+            '<li class="list-dir-item cm-media-list-item">',
+                '<a dir="{{dirpath}}" href="javascript:;" class="list-dir">',
                     '{{^isrootdir}}',
                             '{{{coverartfetcher}}}',
                     '{{/isrootdir}}',
-                    '<div class="listdir-name-wrap">',
-                        '<span class="listdir-name">{{dirpath}}</span>',
+                    '<div class="list-dir-name-wrap">',
+                        '<span class="list-dir-name">{{label}}</span>',
                     '</div>',
                 '</a>',
             '</li>',
@@ -134,6 +220,7 @@ MediaBrowser.static = {
         {
             isrootdir: json.path && !json.path.indexOf('/')>0,
             dirpath: json.path,
+            label: json.label,
             coverartfetcher: function(){
                 return MediaBrowser.static._renderCoverArtFetcher(json.path)
             },
@@ -141,8 +228,8 @@ MediaBrowser.static = {
     },
     _renderCompactDirectory : function(json){
         return Mustache.render([
-        '<li>',
-           '<a dir="{{filepath}}" filter="{{filter}}" href="javascript:;" class="compactlistdir">',
+        '<li class="compact-list-item cm-media-list-item">',
+           '<a dir="{{filepath}}" filter="{{filter}}" href="javascript:;" class="compact-list-dir">',
                 '{{filterUPPER}}',
             '</a>',
         '</li>',
@@ -157,7 +244,7 @@ MediaBrowser.static = {
     _renderCoverArtFetcher : function(path){
         "use strict";
         var searchterms = encodeURIComponent(JSON.stringify({'directory' : path}))
-        return ['<div class="albumart-display unloaded" search-data="'+searchterms+'">',
+        return ['<div class="list-dir-albumart unloaded" search-data="'+searchterms+'">',
         '<img src="/res/img/folder.png" width="80" height="80" />',
         '</div>'].join('');
     },
@@ -176,52 +263,10 @@ MediaBrowser.static = {
         });
     },
     
-    listdirclick : function(mode){
-        "use strict";
-        if($(this).siblings('ul').length>0){
-            if($(this).siblings('ul').is(":visible")){
-                $(this).siblings('ul').slideUp('fast');
-            } else {
-                $(this).siblings('ul').slideDown('fast');
-            }
-        } else {
-            var directory = $(this).attr("dir");
-            var compactlisting = $(this).is("[filter]");
-            if(compactlisting){
-                var data = {
-                    'action' : 'compactlistdir',
-                    'value' : JSON.stringify({ 
-                                'directory' : directory,
-                                'filter' : $(this).attr("filter")
-                              })
-                };
-            } else {
-                var data = {
-                    'action' : 'listdir',
-                    'value' : JSON.stringify({
-                                'directory' : directory 
-                              })
-                };
-            }
-            var currdir = this;
-            var success = function(data){
-                var json = jQuery.parseJSON(data);
-                $(currdir).parent().append(MediaBrowser.static._renderList(json));
-                playlistManager.setTrackDestinationLabel();
-                $(currdir).siblings("ul").hide().slideDown('fast');
-                MediaBrowser.static.albumArtLoader();
-            };
-            busy($(currdir).parent()).hide().fadeIn();
-            api(data,
-                success,
-                errorFunc('unable to list compact directory'),
-                function(){busy($(currdir).parent()).fadeOut('fast')});
-        }
-    },    
     albumArtLoader: function(cssSelector){
         "use strict";
         var winpos = $(window).height()+$(window).scrollTop();
-        $('.albumart-display.unloaded').each(
+        $('.list-dir-albumart.unloaded').each(
             function(idx){
                 if($(this).position().top < winpos){
                    $(this).find('img').attr('src', 'api/fetchalbumart/'+$(this).attr('search-data'));

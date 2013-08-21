@@ -141,7 +141,7 @@ class HTTPHandler(object):
         firstrun = 0 == self.userdb.getUserCount()
         if debug:
             #reload pages everytime in debig mode
-            self.mainpage = readRes('res/main.html')
+            self.mainpage = readRes('res/main2.html')
             self.loginpage = readRes('res/login.html')
             self.firstrunpage = readRes('res/firstrun.html')
         if 'login' in kwargs:
@@ -248,7 +248,7 @@ everybody has to relogin now.''')
         #check action
         action = args[0] if args else ''
         if not action in self.handlers:
-            return "Error: no such action."
+            return "Error: no such action. '%s'" % action
         #authorize if not explicitly deactivated
         handler = self.handlers[action]
         needsAuth = not ('noauth' in dir(handler) and handler.noauth)
