@@ -622,6 +622,7 @@ everybody has to relogin now.''')
         #translate userids to usernames:
         for pl in playlists:
             pl['username'] = self.userdb.getNameById(pl['userid'])
+            pl['type'] = 'playlist'
         return json.dumps(playlists)
 
     def api_logout(self, value):

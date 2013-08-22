@@ -74,7 +74,9 @@ ManagedPlaylist.prototype = {
         var playlistContainerParent = this.playlistManager.cssSelectorPlaylistContainerParent;
         var id = this.playlistManager.plid2htmlid(this.id);
         $(playlistContainerParent).append(
-            '<div class="playlist-container jp-playlist" id="'+id+'"><ul><li></li></ul><div class="jp-playlist-playtime-sum"></div></div>'
+            '<div class="playlist-container jp-playlist" id="'+id+'">'+
+            '<ul class="playlist-container-list"><li></li></ul>'+
+            '<div class="jp-playlist-playtime-sum"></div></div>'
         );
         return '#'+id;
     },
@@ -175,7 +177,7 @@ var NewplaylistProxy = function(playlistManager){
 PlaylistManager = function(){
     "use strict";
     var self = this;
-    this.cssSelectorPlaylistContainerParent = '#playlistContainerParent';
+    this.cssSelectorPlaylistContainerParent = '.playlist-container-parent';
     this.cssSelectorPlaylistChooser = '#playlistChooser';
     this.cssSelectorPlaylistCommands = '#playlistCommands';
     this.cssSelectorJPlayerControls = '#jp_ancestor';
@@ -463,7 +465,6 @@ PlaylistManager.prototype = {
             pltabs += '</a></li>';
         }
         pltabs += '<li><a href="#" onclick="playlistManager.newPlaylist()"><b>+</b></a></li>';
-        pltabs += '<li><a href="#" onclick="playlistManager.showPlaylistBrowser()"><b>load playlist</b></a></li>';
         $(self.cssSelectorPlaylistChooser+' ul').empty()
         $(self.cssSelectorPlaylistChooser+' ul').append(pltabs);
     },
@@ -512,16 +513,6 @@ PlaylistManager.prototype = {
         showpl.show();
         this.refreshTabs();
         this.refreshCommands();
-    },
-    showPlaylistBrowser: function(){
-        playlistManager.hideAll();
-        playlistManager.setEditingPlaylist(0);
-        showPlaylists();
-        $('#playlistChooser ul li:last').addClass('active');
-        $('#playlistCommands').hide();
-        $('#playlistContainerParent').hide();
-        $('#playlistBrowser').show();
-        this.setTrackDestinationLabel();
     },
     setTrackDestinationLabel : function(){
         $('#searchresults .add-track-destination').text('add all to '+this.getEditingPlaylist().name);        
@@ -724,7 +715,6 @@ PlaylistManager.prototype = {
         /*restore playlist from session*/
         var success = function(data){
             var playlistsToRestore = $.parseJSON(data);
-            window.console.log(playlistsToRestore);
             if(playlistsToRestore !== null && playlistsToRestore.length>0){
                 window.console.log('should restore playlist now');
                 for(var i=0; i<playlistsToRestore.length; i++){

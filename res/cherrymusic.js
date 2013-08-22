@@ -263,7 +263,7 @@ function search(append){
         'value' : $('#searchfield input').val()
     };
     var success = function(data){
-        new MediaBrowser('#searchresults', jQuery.parseJSON(data));
+        new MediaBrowser('.search-results', jQuery.parseJSON(data));
         busy('#searchform').fadeOut('fast');
     };
     var error = function(){
@@ -395,7 +395,8 @@ function showPlaylists(){
     "use strict";
     var success = function(data){
             var addressAndPort = getAddrPort();
-            var pls = '<ul class="playlist-browser-list">';
+            new MediaBrowser('.search-results', jQuery.parseJSON(data));
+            /*var pls = '<ul class="playlist-browser-list">';
             $.each($.parseJSON(data),function(i,e){
                 pls += Mustache.render([
                 '<li class="playlist-browser-list-item" id="playlist{{playlistid}}">',
@@ -460,7 +461,7 @@ function showPlaylists(){
             $('.available-playlists').html(pls);
             $('.hideplayliststab').slideDown('fast');
             $('.showplayliststab').slideUp('fast');
-            $('.available-playlists').show();
+            $('.available-playlists').show();*/
         };
 
     var error = errorFunc('error loading external playlists');
@@ -764,7 +765,7 @@ function enableJplayerDebugging(){
 function loadBrowser(){
     var data = { 'action' : 'listdir' };
     var success = function(data){
-        new MediaBrowser('#searchresults', jQuery.parseJSON(data));
+        new MediaBrowser('.search-results', jQuery.parseJSON(data));
     };
     busy('#searchfield').hide().fadeIn('fast');
     api(data,
@@ -1053,7 +1054,7 @@ $(document).ready(function(){
     
     //register top level directories
     $('div#progressscreen').fadeOut('slow');
-    window.setInterval("resizePlaylistSlowly()",2000);
+    //window.setInterval("resizePlaylistSlowly()",2000);
     $('#searchform .searchinput').focus();
     sendHeartBeat();
     window.setInterval("sendHeartBeat()",HEARTBEAT_INTERVAL_MS);

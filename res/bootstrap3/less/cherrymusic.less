@@ -1,6 +1,6 @@
 body{
     /*padding for the fixed navbar and the fixed player*/
-    margin: 55px 0 @mediaplayer-height 0;
+    margin: @navbar-height 0 @mediaplayer-height 0;
 }
 
 .scroll-to-top{
@@ -46,6 +46,8 @@ body{
         display: block;
         height: 50px;
         font-size: 30px;
+        padding: 5px 10px;
+        
         &:hover{
             background-color: @gray-light;
         }
@@ -67,6 +69,10 @@ body{
         display: block;
         white-space: nowrap;
         color: @gray-light;
+    }
+    
+    & > .simplelabel{
+        padding-left: 5px;
     }
 }
 
@@ -134,5 +140,56 @@ body{
             }
         }
     }
+}
+
+.shadow-horizontal(@amount){
     
+}
+
+.search{
+    &-results{
+        /*position: fixed;
+        bottom: 70px;
+        top: 150px;
+        overflow: auto;
+        width: 40%;
+        */
+    }
+}
+
+#playlist-panel{
+   box-shadow: -5px 0px 5px rgba(0, 0, 0, 0.4);
+}
+
+.playlist-container{
+    padding: 0;
+    
+    &-parent{
+        position: fixed;
+        bottom: 70px;
+        top: 150px;
+        overflow: auto;
+        width: 40%;
+    }
+
+    &-list{
+        & > li{
+            list-style-type: none;
+            margin: 5px 0;
+        }
+    }
+    
+    .jp-playlist-item{
+        display: block;
+        &:hover{
+            text-decoration: none;
+        }
+    }
+    
+    .jp-playlist-playtime{
+        float: left;
+    }
+    .jp-playlist-item-remove{
+        float: right;
+    }
 }

@@ -41,7 +41,7 @@ MediaBrowser = function(cssSelector, json, isplaylist, playlistlabel, parent){
     
     var listdirclick = function(){
         "use strict";
-        $(self.cssSelector + " > .cm-media-list").animate({left: '-100%'}, {duration: 500, queue: false});
+        $(self.cssSelector + " > .cm-media-list").animate({left: '-100%'}, {duration: 1000, queue: false});
         
         var directory = $(this).attr("dir");
         var compactlisting = $(this).is("[filter]");
@@ -73,6 +73,7 @@ MediaBrowser = function(cssSelector, json, isplaylist, playlistlabel, parent){
         var folders = [];
         var files = [];
         var compact = [];
+        var playlist = []
         for(var i=0; i < stack_top.length; i++){
             var e = stack_top[i];
             if("file" == e.type){
@@ -81,13 +82,16 @@ MediaBrowser = function(cssSelector, json, isplaylist, playlistlabel, parent){
                 folders.push(e);
             } else if("compact" == e.type){
                 compact.push(e);
+            } else if("playlist" == e.type){
+                playlist.push(e);
             } else {
-                window.console.errror('unknown media browser item '+t);
+                window.console.error('unknown media browser item '+e.type);
             }
         }
         var filehtml = MediaBrowser.static._renderList(files);
         var folderhtml = MediaBrowser.static._renderList(folders);
         var compacthtml = MediaBrowser.static._renderList(compact);
+        var playlisthtml = MediaBrowser.static._renderList(playlist);
         
         var html = '';
         if('' != filehtml){
@@ -98,6 +102,9 @@ MediaBrowser = function(cssSelector, json, isplaylist, playlistlabel, parent){
         }
         if('' != compacthtml){
             html += '<h3>Compact</h3><ul class="cm-media-list">'+compacthtml+'</ul>';
+        }
+        if('' != playlisthtml){
+            html += '<h3>Playlists</h3><ul class="cm-media-list">'+playlisthtml+'</ul>';
         }
         if('' == html){
             html = '<ul class="cm-media-list">'+MediaBrowser.static._renderMessage('No playable media files here.')+'</ul>';
@@ -169,6 +176,9 @@ MediaBrowser.static = {
                 case 'compact':
                     html += MediaBrowser.static._renderCompactDirectory(e);
                     break;
+                case 'playlist':
+                    html += MediaBrowser.static._renderPlaylist(e);
+                    break;
                 default:
                     window.console.log('cannot render unknown type '+e.type);
             }
@@ -224,6 +234,48 @@ MediaBrowser.static = {
             coverartfetcher: function(){
                 return MediaBrowser.static._renderCoverArtFetcher(json.path)
             },
+        });
+    },
+    _renderPlaylist : function(e){
+        return Mustache.render([
+           '<li class="playlist-browser-list-item" id="playlist{{playlistid}}">',
+                '<div class="playlist-browser-list-item-container">',
+                    '<div>',
+                        '<div class="playlisttitle">',
+                            '<a href="javascript:;" onclick="loadPlaylist({{playlistid}}, \'{{playlistlabel}}\')">',
+                            '{{playlistlabel}}',
+                            '</a>',
+                        '</div>',
+                        '<div class="ispublic">',
+                            '{{#isowner}}',
+                            '<span class="label {{publiclabelclass}}">',
+                                'public',
+                                '<input onchange="changePlaylist({{playlistid}},\'public\',$(this).is(\':checked\'))" type="checkbox" {{publicchecked}}>',
+                            '</span>',
+                            '{{/isowner}}',                   
+                        '</div>',
+                        '{{{usernamelabel}}}',
+                        
+                        '{{#candelete}}',
+                        '<div class="deletebutton">',
+                            '<a href="javascript:;" class="btn btn-xs btn-danger" onclick="confirmDeletePlaylist({{playlistid}}, \'{{playlistlabel}}\')">x</a>',
+                        '</div>',
+                        '{{/candelete}}',
+                    '</div>',
+                '</div>',
+                '<div class="playlistcontent">',
+                '</div>',
+            '</li>'
+        ].join(''),
+        {
+            playlistid: e['plid'],
+            isowner: e.owner,
+            candelete: e.owner || isAdmin, 
+            playlistlabel:e['title'],
+            username: e['username'],
+            usernamelabel: renderUserNameLabel(e['username']),
+            publicchecked: e['public'] ? 'checked="checked"' : '',
+            publiclabelclass : e['public'] ? 'label-success' : 'label-default',
         });
     },
     _renderCompactDirectory : function(json){
