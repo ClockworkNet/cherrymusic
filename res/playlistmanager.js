@@ -85,9 +85,9 @@ ManagedPlaylist.prototype = {
         for(var i=0; i<this.jplayerplaylist.playlist.length; i++){
             var elem = this.jplayerplaylist.playlist[i];
             var track = {
-                title : elem.title,
+                title : elem.label,
                 duration : elem.duration,
-                url: elem.url,
+                url: elem.path,
             }
             if(typeof track.url === 'undefined' && typeof elem.mp3 !== 'undefined'){
                 track.url = elem.mp3

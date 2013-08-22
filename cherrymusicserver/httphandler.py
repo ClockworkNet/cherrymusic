@@ -677,6 +677,8 @@ everybody has to relogin now.''')
             'fetchalbumart': cherry.config['media.fetch_album_art'],
             'isadmin': cherrypy.session['admin'],
             'username': cherrypy.session['username'],
+            'servepath': 'serve/',
+            'transcodepath': 'trans/',
         }
         if cherry.config['media.transcode']:
             decoders = self.model.transcoder.availableDecoderFormats()

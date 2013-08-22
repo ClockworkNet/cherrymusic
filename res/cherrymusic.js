@@ -529,6 +529,20 @@ function confirmDeletePlaylist(id,title){
 }
 
 function loadPlaylist(playlistid, playlistlabel){
+    data = {'action':'loadplaylist',
+            'value': playlistid };
+    var success = function(data){
+        var tracklist = jQuery.parseJSON(data);
+        var pl = playlistManager.newPlaylist(tracklist, playlistlabel);
+    }
+    api(data,
+        success,
+        errorFunc('error loading external playlist'),
+        function(){busy('#playlist-panel').fadeOut('fast')}
+    )
+}
+
+function loadPlaylistContent(playlistid, playlistlabel){
     "use strict";
     var pldomid = "#playlist"+playlistid+' .playlistcontent';
 
