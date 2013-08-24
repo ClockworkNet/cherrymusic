@@ -31,18 +31,18 @@
 RENDERING
 ********/
 
-MediaBrowser = function(cssSelector, json, isplaylist, playlistlabel, parent){
+MediaBrowser = function(cssSelector, json, title){
     "use strict";
-    this.listing_data_stack = [json];
-    this.parent = parent;
+    this.listing_data_stack = [{'title': title, 'data': json}];
     this.cssSelector = cssSelector;
 
     var self = this;
     
     var listdirclick = function(){
+        
         "use strict";
         $(self.cssSelector + " > .cm-media-list").animate({left: '-100%'}, {duration: 1000, queue: false});
-        
+        var next_mb_title = '';
         var directory = $(this).attr("dir");
         var compactlisting = $(this).is("[filter]");
         var action = 'listdir';
@@ -50,25 +50,35 @@ MediaBrowser = function(cssSelector, json, isplaylist, playlistlabel, parent){
         if(compactlisting){
             action = 'compactlistdir';
             dirdata['filter'] = $(this).attr("filter");
+            next_mb_title = 'Filter: '+dirdata['filter'];
+        } else {
+            next_mb_title = $(this).text();
         }
         var currdir = this;
         var success = function(data){
             var json = jQuery.parseJSON(data);
-            self.listing_data_stack.push(json)
+            self.listing_data_stack.push({'title': next_mb_title, 'data': json});
             self.render();
         };
-        busy($(currdir).parent()).hide().fadeIn();
         api({action: action,
              value: JSON.stringify(dirdata)},
             success,
-            errorFunc('unable to list compact directory'),
-            function(){busy($(currdir).parent()).fadeOut('fast')});
+            errorFunc('unable to list compact directory'));
         $(this).blur();
         return false;
     }
     
+    this.go_to_parent = function(levels){
+        if(typeof levels === 'undefined'){
+            levels = 1;
+        }
+        for(var i=0; i<levels; i++){
+            self.listing_data_stack.pop();
+        }
+    }
+    
     this.render = function(){
-        var stack_top = self.listing_data_stack[self.listing_data_stack.length-1];
+        var stack_top = self.listing_data_stack[self.listing_data_stack.length-1]['data'];
         //split into categories:
         var folders = [];
         var files = [];
@@ -95,7 +105,10 @@ MediaBrowser = function(cssSelector, json, isplaylist, playlistlabel, parent){
         
         var html = '';
         if('' != filehtml){
-            html += '<h3>Tracks</h3><ul class="cm-media-list">'+filehtml+'</ul>';
+            html += '<h3>Tracks <a href="#" class="btn btn-default" '+
+                    'onclick="MediaBrowser.static._addAllToPlaylist($(this).parent().siblings(\'ul\'))">'+
+                    'add all tracks to curent playlist</a>'+
+                    '</h3><ul class="cm-media-list">'+filehtml+'</ul>';
         }
         if('' != folderhtml){
             html += '<h3>Collections</h3><ul class="cm-media-list">'+folderhtml+'</ul>';
@@ -110,18 +123,34 @@ MediaBrowser = function(cssSelector, json, isplaylist, playlistlabel, parent){
             html = '<ul class="cm-media-list">'+MediaBrowser.static._renderMessage('No playable media files here.')+'</ul>';
         }
         
+        html = '<ol class="breadcrumb"></ol>' + html;
         $(self.cssSelector).html(html);
         if(self.listing_data_stack.length > 1){
             var node = $('<div class="cm-media-list-item cm-media-list-parent-item">'+
             '   <a class="cm-media-list-parent" href="javascript:;">'+
             '   <span class="glyphicon glyphicon-arrow-left"></span>'+
             '</a></div>');
-            node.on('click',function(){
-                self.listing_data_stack.pop();
-                self.render();
-            });
+            node.on('click', create_jump_func(1));
             $(this.cssSelector).prepend(node);
         }
+        var create_jump_func = function(i){
+            return function(){
+                self.go_to_parent(self.listing_data_stack.length - 1 - i);
+                self.render();
+            };
+        }
+        for(var i=0; i < self.listing_data_stack.length; i++){
+            var title = self.listing_data_stack[i]['title'];
+            var li = '<li';
+            if(i == self.listing_data_stack.length - 1){
+                li += ' class="active"';
+            }
+            li += '><a href="#">'+title+'</a></li>';
+            var $li = $(li);
+            $li.on('click', create_jump_func(i));
+            $(this.cssSelector + ' .breadcrumb').append($li);
+        }
+        
         playlistManager.setTrackDestinationLabel();
         MediaBrowser.static.albumArtLoader(cssSelector);
     }
@@ -247,7 +276,9 @@ MediaBrowser.static = {
                             '</a>',
                         '</div>',
                         '<div class="playlisttitle">',
-                            '{{playlistlabel}}',
+                            '<a href="javascript:;" onclick="loadPlaylist({{playlistid}}, \'{{playlistlabel}}\')">',
+                                '{{playlistlabel}}',
+                            '</a>',
                         '</div>',
                         '<div class="ispublic">',
                             '{{#isowner}}',
@@ -313,7 +344,7 @@ MediaBrowser.static = {
     
     _addAllToPlaylist : function($source, plid){
         "use strict";
-        $source.parent().siblings('li').children('.mp3file').each(function(){
+        $source.find('li .musicfile').each(function(){
             playlistManager.addSong( $(this).attr("path"), $(this).attr("title"), plid );
         });
     },

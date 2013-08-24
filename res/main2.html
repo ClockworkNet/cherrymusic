@@ -38,10 +38,11 @@
 <link href="res/bootstrap3/less/bootstrap.less" rel="stylesheet/less" />
 <script type="text/javascript">var less=less||{};less.env='development';</script>
 <script type="text/javascript" src="res/bootstrap3/assets/less.js"></script>
-<script type="text/javascript" src="res/js/jquery-1.10.2.min.js"></script>
+<script type="text/javascript" src="res/js/jquery-1.10.2.js"></script>
 <script type="text/javascript" src="res/bootstrap3/js/modal.js"></script>
 <script type="text/javascript" src="res/bootstrap3/js/collapse.js"></script>
 <script type="text/javascript" src="res/bootstrap3/js/transition.js"></script>
+<script type="text/javascript" src="res/bootstrap3/js/dropdown.js"></script>
 
 <script type="text/javascript" src="res/js/json2.min.js"></script>
 <script type="text/javascript" src="res/js/jquery.jplayer.min.js"></script>
@@ -428,10 +429,19 @@
         </li>
     </ul>
     <ul class="nav navbar-nav navbar-right">
-        <li><a href="#userOptions" role="button" data-toggle="modal">Options</a></li>
-        <li><a style="display: none;" href="#adminpanel" role="button" data-toggle="modal">Admin</a></li>
-        <li><a href="javascript:;" onclick="logout()">Logout <span id="username-label"></span></a></li>
+        <li class="dropdown">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown">
+                <b class="caret"></b><span class="glyphicon glyphicon-wrench"></span>
+            </a>
+            <ul class="dropdown-menu">
+                <li><a href="#userOptions" role="button" data-toggle="modal">Options</a></li>
+                <li><a style="display: none;" href="#adminpanel" role="button" data-toggle="modal">Admin</a></li>
+                <li class="divider"></li>
+                <li><a href="javascript:;" onclick="logout()">Logout <span id="username-label"></span></a></li>
+            </ul>
+        </li>
     </ul>
+    
   </div>
 </div>
 <!-- END UPPER NAVIGATION ELEMENTS -->
@@ -442,14 +452,14 @@
 <div id="errormessage"></div>
 <div class="">
     <div class="row">
-        <div id="search-panel" class="col-md-6">
+        <div id="search-panel" class="col-md-6 row">
             <!--SEARCH TAB START -->
             <div class="search">
                 <div class="search-results"></div>
             </div>
             <!--SEARCH TAB END -->
         </div>
-        <div id="playlist-panel" class="col-md-6">
+        <div id="playlist-panel" class="col-md-6 row">
             <!-- PLAYLIST TAB START -->
             <div id="jplayer">
                 <div id="over-playlist-tabs">

@@ -44,15 +44,37 @@ body{
    box-shadow: -5px 0px 5px rgba(0, 0, 0, 0.4);
 }
 
+@media (min-width: @screen-desktop) {
+    .playlist-container-parent{
+        position: fixed;
+        bottom: @mediaplayer-height;
+        top: 150px;
+        overflow: auto;
+        width: 50%;
+    }
+    #playlist-panel{
+        position: absolute;
+        top: @navbar-height;
+        bottom: 0;
+        left: 50%;
+    }
+    #search-panel{
+        position: fixed;
+        top: @navbar-height;
+        bottom: @mediaplayer-height;
+        overflow: auto;
+        direction: rtl; /*scrollbar on the left*/
+        & > div{
+            direction: ltr; /*back to normal*/
+        }
+    }
+}
+
 .playlist-container{
     padding: 0;
     
     &-parent{
-        position: fixed;
-        bottom: 70px;
-        top: 150px;
-        overflow: auto;
-        width: 40%;
+     
     }
 
     &-list{

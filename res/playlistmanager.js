@@ -20,6 +20,15 @@ ManagedPlaylist.prototype = {
     _init : function(playlist, playlistManager){
         var self = this;
         this.playlistSelector = self._createNewPlaylistContainer();
+        //check if playlist is sane:
+        for(var i=0; i<playlist.length; i++){
+            if(typeof playlist[0].path === 'undefined'){
+                window.console.error('track has no path set!');
+            }
+            if(typeof playlist[0].label === 'undefined'){
+                window.console.error('track has no path set!');
+            }
+        }
         self.jplayerplaylist = new jPlayerPlaylist(
             {
                 jPlayer: this.playlistManager.cssSelectorjPlayer,
@@ -602,7 +611,7 @@ PlaylistManager.prototype = {
         var formats = [];
         if(availablejPlayerFormats.indexOf(ext) !== -1){
             //add natively supported path
-            track[ext2jPlayerFormat(ext)] = path;
+            track[ext2jPlayerFormat(ext)] = SERVER_CONFIG.serve_path + path;
             formats.push(ext);
             window.console.log('added native format '+ext);
         } else if(!transcodingEnabled){
@@ -619,7 +628,8 @@ PlaylistManager.prototype = {
                 for(var i=0; i<availablejPlayerFormats.length; i++){
                     if(availableEncoders.indexOf(availablejPlayerFormats[i]) !== -1){
                         formats.push(availablejPlayerFormats[i]);
-                        track[ext2jPlayerFormat(availablejPlayerFormats[i])] = getTranscodePath(path,availablejPlayerFormats[i]);
+                        var transurl = SERVER_CONFIG.transcode_path + path + '/get.'+availablejPlayerFormats[i];
+                        track[ext2jPlayerFormat(availablejPlayerFormats[i])] = transurl;
                         window.console.log('added live transcoding '+ext+' --> '+availablejPlayerFormats[i]);
                     }
                 }

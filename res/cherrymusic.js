@@ -35,6 +35,7 @@ if(['msie','safari'].indexOf(browser) != -1){
     var encoderPreferenceOrder = ['ogg','mp3'];
 }
 
+var SERVER_CONFIG = {};
 var availableEncoders = undefined;
 var availablejPlayerFormats = ['mp3','ogg'];
 var availableDecoders = undefined;
@@ -150,11 +151,23 @@ function loadConfig(executeAfter){
     };
     var success = function(data){
         var dictatedClientConfig = jQuery.parseJSON(data);
+        /** DEPRECATED GLOBAL VARIABLES **/
         availableEncoders = dictatedClientConfig.getencoders;
         availableDecoders = dictatedClientConfig.getdecoders;
         transcodingEnabled = dictatedClientConfig.transcodingenabled;
         isAdmin = dictatedClientConfig.isadmin;
         loggedInUserName = dictatedClientConfig.username;
+        
+        /** USE SERVER CONFIG INSTEAD **/
+        SERVER_CONFIG = {
+            'available_encoders': dictatedClientConfig.getencoders,
+            'available_decoders': dictatedClientConfig.getdecoders,
+            'transcoding_enabled': dictatedClientConfig.transcodingenabled,
+            'is_admin': dictatedClientConfig.isadmin,
+            'user_name': dictatedClientConfig.username,
+            'serve_path': dictatedClientConfig.servepath,
+            'transcode_path': dictatedClientConfig.transcodepath,
+        }
         
         executeAfter();
         if(isAdmin){
@@ -258,12 +271,13 @@ function search(append){
         $('#searchfield input').focus();
         return false;
     }
+    var searchstring = $('#searchfield input').val();
     var data = {
         'action' : 'search',
-        'value' : $('#searchfield input').val()
+        'value' : searchstring
     };
     var success = function(data){
-        new MediaBrowser('.search-results', jQuery.parseJSON(data));
+        new MediaBrowser('.search-results', jQuery.parseJSON(data), 'Search: '+htmlencode(searchstring));
         busy('#searchform').fadeOut('fast');
     };
     var error = function(){
@@ -309,18 +323,6 @@ ext2jPlayerFormat = function(ext){
     }
 }
 
-
-/**********
-TRANSCODING
-**********/
-
-function getTranscodePath(filepath, format){
-    "use strict";
-    var match = filepath.match(/serve(.*)$/);
-    if(match){
-        return "/trans"+match[1]+"/get."+format;
-    }
-}
 
 /******************
 PLAYLIST MANAGEMENT
@@ -533,7 +535,16 @@ function loadPlaylist(playlistid, playlistlabel){
             'value': playlistid };
     var success = function(data){
         var tracklist = jQuery.parseJSON(data);
-        var pl = playlistManager.newPlaylist(tracklist, playlistlabel);
+        //transform tracks to jplayer format:
+        //TODO rewrite jplayer playlist to support CM-music entry format
+        var jplayerplaylist = [];
+        for(var i=0; i<tracklist.length; i++){
+            jplayerplaylist.push({
+                                    'title':tracklist[i].label,
+                                    'url':  tracklist[i].urlpath
+                                });
+        }
+        var pl = playlistManager.newPlaylist(jplayerplaylist, playlistlabel);
     }
     api(data,
         success,
@@ -550,7 +561,7 @@ function loadPlaylistContent(playlistid, playlistlabel){
         var data = {'action':'loadplaylist',
                     'value': playlistid };
         var success = function(data){
-            new MediaBrowser(pldomid, jQuery.parseJSON(data), true, playlistlabel);
+            new MediaBrowser(pldomid, jQuery.parseJSON(data), playlistlabel);
         };
         busy('#playlist-panel').hide().fadeIn('fast');
         api(data,
@@ -779,7 +790,7 @@ function enableJplayerDebugging(){
 function loadBrowser(){
     var data = { 'action' : 'listdir' };
     var success = function(data){
-        new MediaBrowser('.search-results', jQuery.parseJSON(data));
+        new MediaBrowser('.search-results', jQuery.parseJSON(data), 'Root');
     };
     busy('#searchfield').hide().fadeIn('fast');
     api(data,
