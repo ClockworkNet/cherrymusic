@@ -118,29 +118,17 @@ function successNotify(msg){
     };
 }
 
-function renderUserMessage(msg, type){
-    return Mustache.render([
-        '<div class="alert {{cssclass}}">',
-            '<button type="button" class="close" data-dismiss="alert">',
-                '&times;',
-            '</button>',
-            '{{msg}}',
-        '</div>',
-    ].join(''),
-    {
-        msg : msg,
-        cssclass: type=='error'?'alert-error':type=='success'?'alert-success':''
-    });
+function displayNotification(msg,type){
+    templateLoader.render(
+        'flash-message', 
+        {
+            msg : msg,
+            cssclass: type=='error'?'alert-error':type=='success'?'alert-success':''
+        },
+        $('#errormessage')
+    );
 }
 
-function displayNotification(msg,type){
-    $('#errormessage').html(renderUserMessage(msg,type));
-}
-function removeError(msg){
-    if($('#errormessage').html() == renderUserMessage(msg,'error')){
-        $('#errormessage').html('');
-    }
-}
 /*******************
 CONFIGURATION LOADER
 *******************/
@@ -396,99 +384,16 @@ function userNameToColor(username){
 function showPlaylists(){
     "use strict";
     var success = function(data){
-            var addressAndPort = getAddrPort();
-            new MediaBrowser('.search-results', jQuery.parseJSON(data));
-            /*var pls = '<ul class="playlist-browser-list">';
-            $.each($.parseJSON(data),function(i,e){
-                pls += Mustache.render([
-                '<li class="playlist-browser-list-item" id="playlist{{playlistid}}">',
-                    '<div class="playlist-browser-list-item-container">',
-                        '<div>',
-                            '<div class="playlisttitle">',
-                                '<a href="javascript:;" onclick="loadPlaylist({{playlistid}}, \'{{playlistlabel}}\')">',
-                                '{{playlistlabel}}',
-                                '</a>',
-                            '</div>',
-                            '<div class="ispublic">',
-                                '{{#isowner}}',
-                                '<span class="label {{publiclabelclass}}">',
-                                    'public',
-                                    '<input onchange="changePlaylist({{playlistid}},\'public\',$(this).is(\':checked\'))" type="checkbox" {{publicchecked}}>',
-                                '</span>',
-                                '{{/isowner}}',                   
-                            '</div>',
-                            '{{{usernamelabel}}}',
-                            
-                            '{{#candelete}}',
-                            '<div class="deletebutton">',
-                                '<a href="javascript:;" class="btn btn-xs btn-danger" onclick="confirmDeletePlaylist({{playlistid}}, \'{{playlistlabel}}\')">x</a>',
-                            '</div>',
-                            '{{/candelete}}',
-                            
-                            '{{#showdownloadbuttons}}',
-                            '<div class="dlbutton">',
-                                '<a class="btn btn-mini" href="/api/downloadpls?value={{dlval}}">',
-                                '&darr;&nbsp;PLS',
-                                '</a>',
-                            '</div>',
-                            '<div class="dlbutton">',
-                                '<a class="btn btn-mini" href="/api/downloadm3u?value={{dlval}}">',
-                                '&darr;&nbsp;M3U',
-                                '</a>',
-                            '</div>',
-                            '{{/showdownloadbuttons}}',
-                        '</div>',
-                    '</div>',
-                    '<div class="playlistcontent">',
-                    '</div>',
-                '</li>'
-                ].join(''),
-                    {
-                    playlistid: e['plid'],
-                    isowner: e.owner,
-                    candelete: e.owner || isAdmin, 
-                    showdownloadbuttons: userOptions.misc.show_playlist_download_buttons,
-                    playlistlabel:e['title'],
-                    dlval : JSON.stringify({ 'plid' : e['plid'],
-                        'addr' : addressAndPort
-                        }),
-                    username: e['username'],
-                    usernamelabel: renderUserNameLabel(e['username']),
-                    publicchecked: e['public'] ? 'checked="checked"' : '',
-                    publiclabelclass : e['public'] ? 'label-success' : 'label-default',
-                    }
-                );
-            });
-            pls += '</ul>';
-            $('.available-playlists').html(pls);
-            $('.hideplayliststab').slideDown('fast');
-            $('.showplayliststab').slideUp('fast');
-            $('.available-playlists').show();*/
-        };
-
+        var addressAndPort = getAddrPort();
+        new MediaBrowser('.search-results', jQuery.parseJSON(data));
+    };
     var error = errorFunc('error loading external playlists');
 
-    //$('.available-playlists').slideUp('fast');
     busy('#playlist-panel').hide().fadeIn('fast');
     api('showplaylists',
         success,
         error,
         function(){busy('#playlist-panel').fadeOut('fast')}
-    );
-}
-
-renderUserNameLabel = function(username){
-    return Mustache.render([
-        '<div class="usernamelabel">',
-            '<span class="badge" style="background-color: {{hexcolor}}">',
-                '{{username}}',
-            '</span>',
-        '</div>'
-    ].join(''),
-    {
-        hexcolor: userNameToColor(username),
-        username: username,
-    }
     );
 }
 
@@ -621,6 +526,31 @@ function logout(){
     api('logout',success);
 }
 
+/** TEMPLATES **/
+function TemplateLoader(template_path){
+    this.template_path = template_path;
+    this.loaded_templates = {};
+    var self = this;
+    this.get = function(template_name, callback){
+        if(this.loaded_templates.hasOwnProperty(template_name)){
+            callback(this.loaded_templates[template_name]);
+        } else {
+            $.get(
+                this.template_path+'/'+template_name+'.html',
+                function(data){
+                    self.loaded_templates[template_name] = data;
+                    callback(self.loaded_templates[template_name]);
+                }
+            );
+        }
+    }
+    this.render = function(template_name, content, $jqobj){
+        this.get(template_name, function(template){
+            $jqobj.html(Mustache.render(template, content));
+        });
+    }
+}
+var templateLoader = new TemplateLoader('res/templates');
 
 /***
 ADMIN PANEL
@@ -632,46 +562,24 @@ function updateUserList(){
         var htmllist = "";
         var response = $.parseJSON(data);
         var time = response['time'];
+        var template_user_data = {'users': []};
         $.each(response['userlist'],function(i,e){           
             var reltime = time - e.last_time_online;
-            htmllist += Mustache.render([
-                '<li {{#isadmin}}class="admin"{{/isadmin}}>',
-                    '<div class="row-fluid">',
-                        '<div class="span1">',
-                            '<span class="badge ',
-                                '{{#isonline}}badge-success{{/isonline}}',
-                                '{{^isonline}}badge-important{{/isonline}}',
-                                '">&#x2022;',
-                            '</span>',
-                        '</div>',
-                        '<div class="span3">{{{usernamelabel}}}</div>',
-                        '<div class="span3"> last seen: {{fuzzytime}}</div>',
-                        '<div class="span3">',
-                            '{{#isnotadmin}}',
-                            'permit download<input type="checkbox" ',
-                            'onchange="userSetPermitDownload({{userid}}, $(this).is(\':checked\'))" id="misc-autoplay_on_add" value="option1" ',
-                            '{{#may_download}}checked="checked"{{/may_download}}>',
-                            '{{/isnotadmin}}',
-                        '</div>',
-                        '<div class="span1">',
-                            '{{#isdeletable}}',
-                                '<a class="btn btn-mini btn-danger" href="javascript:;" onclick="userDelete({{userid}})">delete</a>',
-                            '{{/isdeletable}}',
-                        '</div>',
-                    '</div>',
-                '</li>',
-            ].join(''),{
+            template_user_data['users'].push({
                 isadmin: e.admin,
                 may_download: e.may_download,
                 isnotadmin: !e.admin,
                 isdeletable: e.deletable,
                 userid: e.id,
                 isonline: reltime < HEARTBEAT_INTERVAL_MS/500,
-                usernamelabel: renderUserNameLabel(e.username),
+                username: e.username,
+                username_color: userNameToColor(e.username),
                 fuzzytime: time2text(reltime),
             });
         });
-        $('#adminuserlist').html(htmllist);
+        templateLoader.get('user-list', function(template){
+            $('#adminuserlist').html(Mustache.render(template, template_user_data));
+        });
     };
     busy('#adminuserlist').hide().fadeIn('fast');
     api('getuserlist',
@@ -949,71 +857,9 @@ function keyboardShortcuts(e){
 
 function sendHeartBeat(){
     api('heartbeat',
-        function(){ removeError('connection to server lost')},
+        function(){ /*removeError('connection to server lost') */ },
         errorFunc('connection to server lost'),
         true)
-}
-
-function enableMobileSwiping(){
-    var wrap = $('.swipe-panels>div');
-    var width = wrap.width();
-    var sp = $('.search-panel').get(0);
-    var pp = $('#playlist-panel').get(0);
-    //set up css rules for swiping:
-    $('body').css('overflow','hidden');
-    $('body').css('height','100%');
-    $('html').css('height','100%');
-    $('.search-panel').css('position', 'absolute');
-    $('.search-panel').css('top', '165px');
-    $('.search-panel').css('left', '0');
-    $('#playlist-panel').css('position', 'absolute');
-    $('#playlist-panel').css('top', '165px');
-    $('#playlist-panel').css('left', '100%');
-    var leftoffset = 0;
-    $('body')
-    .on('movestart', function(e) {
-        leftoffset = $('.search-panel').hasClass('active-swipe')? 0 : -100;
-        width = wrap.width();
-        // If the movestart heads off in a upwards or downwards
-        // direction, prevent it so that the browser scrolls normally.
-        if ((e.distX > e.distY && e.distX < -e.distY) ||
-            (e.distX < e.distY && e.distX > -e.distY)) {
-            e.preventDefault();
-            return;
-        }
-    })
-    .on('move', function(e){
-        var left = 100 * e.distX / width;
-        if (e.distX < 0) {
-            sp.style.left = (leftoffset+left) + '%';
-            sp.style.width = (100-leftoffset+left) + '%';
-            pp.style.left = (leftoffset+left+100)+'%';
-        }
-        if (e.distX > 0) {
-            sp.style.left = (leftoffset+left) + '%';
-            pp.style.left = (leftoffset+left+100)+'%';
-        }
-    })
-    .on('moveend', function(e) {
-       if(parseInt(pp.style.left) < 50){
-           $('.search-panel').animate({left: '-100%'});
-           $('#playlist-panel').animate({left: '0%'});
-           $('.search-panel').removeClass('active-swipe');
-           $('#playlist-panel').addClass('active-swipe');
-       } else {
-            $('.search-panel').animate({left: '0%'});
-            $('#playlist-panel').animate({left: '100%'});
-            $('.search-panel').addClass('active-swipe');
-            $('#playlist-panel').removeClass('active-swipe');
-       }
-    });
-}
-function disableMobileSwiping(){
-    $('body').off('movestart').off('move').off('moveend');
-    $('.search-panel').removeAttr('style');
-    $('#playlist-panel').removeAttr('style');
-    $('body').removeAttr('style');
-    $('html').removeAttr('style');
 }
 
 function userOptionCheckboxListener(htmlid, optionname){
@@ -1083,14 +929,14 @@ $(document).ready(function(){
     $('#searchform .searchinput').focus();
     sendHeartBeat();
     window.setInterval("sendHeartBeat()",HEARTBEAT_INTERVAL_MS);
-    $('#adminpanel').on('shown', function (e) {
+    $('#adminpanel').on('shown.bs.modal', function (e) {
         updateUserList();
     });
     $('#save-playlist-from-queue').on('click',function(){
         $('#playlisttitle').val('');
         $("#playlistpublic").attr("checked", true);
     });
-    $('#saveplaylistmodal').on('shown',function(){
+    $('#saveplaylistmodal').on('shown.bs.modal',function(){
         $('#playlisttitle').focus();
         $('#playlisttitle').bind('keyup',function(e){
             if(e.which === 13) { //enter
@@ -1103,7 +949,7 @@ $(document).ready(function(){
     $('#saveplaylistmodal').on('hide', function(){
         $('#playlisttitle').unbind('keyup');
     });
-    $('#changePassword').on('show', function(){
+    $('#changePassword').on('show.bs.modal', function(){
         $('#changePassword').data('modal').options.focusOn = '#oldpassword-change';
     });
     
@@ -1111,5 +957,4 @@ $(document).ready(function(){
                                'misc.show_playlist_download_buttons');
     userOptionCheckboxListener('#misc-autoplay_on_add',
                                'misc.autoplay_on_add');
-    //enableMobileSwiping();
 });
