@@ -141,7 +141,7 @@ class HTTPHandler(object):
         firstrun = 0 == self.userdb.getUserCount()
         if debug:
             #reload pages everytime in debig mode
-            self.mainpage = readRes('res/main2.html')
+            self.mainpage = readRes('res/main.html')
             self.loginpage = readRes('res/login.html')
             self.firstrunpage = readRes('res/firstrun.html')
         if 'login' in kwargs:
