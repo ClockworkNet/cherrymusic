@@ -50,51 +50,64 @@ var playlistSelector = '.jp-playlist';
 
 var executeAfterConfigLoaded = []
 
-function api(data_or_action, successfunc, errorfunc, completefunc){
+
+/**
+ * This function can call the cherrymusic api (v1)
+ * api(String actionname,   -> action name as defined in httphandler.py
+ *     [data,]              -> simple js object containing the data
+ *     successfunc,         -> fucntion to be called on success
+ *     errorfunc,           -> function to be called on error
+ *     completefunc)        -> function to be called after error/success
+ */
+function api(){
     "use strict";
-    if(!successfunc){
-        successfunc = function(){};
+    var action = arguments[0];
+    var has_data = !(typeof arguments[1] === 'function');
+    var data = {};
+    if(has_data){
+        data = arguments[1];
     }
-    if(!completefunc){
-        completefunc = function(){};
+    var successfunc = arguments[has_data?2:1];
+    var errorfunc = arguments[has_data?3:2];
+    var completefunc = arguments[has_data?4:3];
+    
+    if(!successfunc) successfunc = function(){};
+    if(!completefunc) completefunc = function(){};
+    
+    var successFuncWrapper = function(successFunc){
+        return function handler(json){
+            var result = $.parseJSON(json);
+            if(result.flash){
+                successNotify(result.flash);
+            }
+            successFunc(result.data);
+        }
     }
+    
+    //wrapper for all error handlers:
     var errorFuncWrapper = function(errorFunc){
         return function(httpstatus){
             if(httpstatus.status == 401){
+                /* if a request get's a 401, that means the user was logged
+                 * out, so we reload to show the login page. */
                 reloadPage();
             }
             errorFunc();
         }
     }
-    var defaultErrorHandler = function(){
-        errorFunc('calling API function "'+apiaction+'"')();
-    };
     if(!errorfunc){
-        errorfunc = errorFuncWrapper(defaultErrorHandler);
-    } else {
-        errorfunc = errorFuncWrapper(errorfunc);
-    }
-    var senddata;
-    var apiaction;
-    if(typeof data_or_action === "string"){
-        apiaction = data_or_action;
-        senddata = {};
-    } else {
-        apiaction = data_or_action['action'];
-        senddata = {"value" :  data_or_action['value'] };
-
-    }
-    var urlaction = 'api';
-    if(apiaction){
-        urlaction += '/'+apiaction;
+        //default error handler
+        errorfunc = function(){
+            errorFunc('Error calling API function "'+action+'"')();
+        };
     }
     $.ajax({
-        url: urlaction,
+        url: 'api/'+action,
         context: $(this),
         type: 'POST',
-        data: senddata,
-        success: successfunc,
-        error: errorfunc,
+        data: {'data': JSON.stringify(data)},
+        success: successFuncWrapper(successfunc),
+        error: errorFuncWrapper(errorfunc),
         complete: completefunc,
     });
 }
@@ -109,6 +122,7 @@ htmldecode = function(val){
 function errorFunc(msg){
     "use strict";
     return function(){
+        window.console.error('CMError: '+msg);
         displayNotification(msg,'error');
     };
 }
@@ -134,11 +148,8 @@ CONFIGURATION LOADER
 *******************/
 function loadConfig(executeAfter){
     "use strict";
-    var data = {
-        'action' : 'getconfiguration',
-    };
     var success = function(data){
-        var dictatedClientConfig = jQuery.parseJSON(data);
+        var dictatedClientConfig = data;
         /** DEPRECATED GLOBAL VARIABLES **/
         availableEncoders = dictatedClientConfig.getencoders;
         availableDecoders = dictatedClientConfig.getdecoders;
@@ -163,7 +174,7 @@ function loadConfig(executeAfter){
         }
     };
     var error = errorFunc("Could not fetch client configuration, CherryMusic will not work. Clearing the browser cache might help.");
-    api(data,success,error);
+    api('getconfiguration', {}, success, error);
 }
 
 /************
@@ -171,8 +182,8 @@ function loadConfig(executeAfter){
  * **********/
 
 function loadUserOptions(onSuccess){
-    var success = function(data){
-        userOptions = jQuery.parseJSON(data);
+    var success = function(userOptionsLoaded){
+        userOptions = userOptionsLoaded;
         if(typeof onSuccess !== 'undefined'){
             onSuccess();
         }
@@ -192,21 +203,16 @@ function loadUserOptions(onSuccess){
     api('getuseroptions', success);
 }
 
-var optionSetter = function(name,val,success,error){
+var optionSetter = function(name, val, success, error){
     busy('#userOptions .content').hide().fadeIn();
-    api(
-            {
-                action:'setuseroption',
-                value:JSON.stringify(
-                    {
-                        'optionkey':name,
-                        'optionval':val
-                    }
-                )
-            },
-            function(){success(); loadUserOptions();},
-            error,
-            function(){busy('#userOptions .content').fadeOut('fast')}
+    api('setuseroption',
+        {
+            'optionkey':name,
+            'optionval':val
+        },
+        function(){ success(); loadUserOptions(); },
+        error,
+        function(){ busy('#userOptions .content').fadeOut('fast'); }
     )
 }
 keyboard_shortcut_setter = function(option, optionname){
@@ -260,12 +266,8 @@ function search(append){
         return false;
     }
     var searchstring = $('#searchfield input').val();
-    var data = {
-        'action' : 'search',
-        'value' : searchstring
-    };
-    var success = function(data){
-        new MediaBrowser('.search-results', jQuery.parseJSON(data), 'Search: '+htmlencode(searchstring));
+    var success = function(json){
+        new MediaBrowser('.search-results', json, 'Search: '+htmlencode(searchstring));
         busy('#searchform').fadeOut('fast');
     };
     var error = function(){
@@ -273,7 +275,7 @@ function search(append){
         busy('#searchform').fadeOut('fast');
     };
     busy('#searchform').hide().fadeIn('fast');
-    api(data,success,error);
+    api('search', {'searchstring': searchstring}, success, error);
     return false;
 }
 function submitsearch(){
@@ -334,14 +336,6 @@ function savePlaylist(plid,playlistname,ispublic,overwrite){
     overwrite = Boolean(overwrite);
     ispublic = ispublic || pl.public;
     playlistname = playlistname || pl.name;
-    var data = { 'action':'saveplaylist',
-                'value':JSON.stringify({
-                            'playlist':pl.jplayerplaylist.playlist,
-                            'public':ispublic,
-                            'playlistname':playlistname,
-                            'overwrite':overwrite,
-                        })
-                };
     var success = function(){
         playlistManager.getPlaylistById(plid).name = playlistname;
         playlistManager.getPlaylistById(plid).public = ispublic;
@@ -350,7 +344,13 @@ function savePlaylist(plid,playlistname,ispublic,overwrite){
         playlistManager.showPlaylist(plid);
     }
     busy('#playlist-panel').hide().fadeIn('fast');
-    api(data,
+    api('saveplaylist',
+        {
+            'playlist':pl.jplayerplaylist.playlist,
+            'public':ispublic,
+            'playlistname':playlistname,
+            'overwrite':overwrite,
+        },
         success,
         errorFunc('error saving playlist'),
         function(){busy('#playlist-panel').fadeOut('fast')});
@@ -364,28 +364,12 @@ function ord(c)
 {
   return c.charCodeAt(0);
 }
-function dec2Hex(dec){
-    var hexChars = "0123456789ABCDEF";
-    var a = dec % 16;
-    var b = (dec - a)/16;
-    hex = hexChars.charAt(b) + hexChars.charAt(a);
-    return hex;
-}
-
-function userNameToColor(username){
-    username = username.toUpperCase();
-    username+='AAA';
-    var g = ((ord(username[0])-65)*255)/30;
-    var b = ((ord(username[1])-65)*255)/30;
-    var r = ((ord(username[2])-65)*255)/30;
-    return '#'+dec2Hex(r)+dec2Hex(g)+dec2Hex(b);
-}
 
 function showPlaylists(){
     "use strict";
     var success = function(data){
         var addressAndPort = getAddrPort();
-        new MediaBrowser('.search-results', jQuery.parseJSON(data));
+        new MediaBrowser('.search-results', data);
     };
     var error = errorFunc('error loading external playlists');
 
@@ -402,14 +386,11 @@ function changePlaylist(plid,attrname,value){
     window.console.log(attrname);
     window.console.log(value);
     busy('#playlist-panel').hide().fadeIn('fast');
-    api(
+    api('changeplaylist',
         {
-            action:'changeplaylist',
-            value: JSON.stringify({
-                    'plid' : plid,
-                    'attribute' : attrname,
-                    'value' : value
-                    }),
+            'plid' : plid,
+            'attribute' : attrname,
+            'value' : value
         },
         function(){
             showPlaylists();
@@ -423,7 +404,8 @@ function confirmDeletePlaylist(id,title){
     $('#deletePlaylistConfirmButton').off();
     $('#deletePlaylistConfirmButton').on('click', function(){
         busy('#playlist-panel').hide().fadeIn('fast');
-        api({action:'deleteplaylist', value: id},
+        api('deleteplaylist',
+            {'playlistid':  id},
             false,
             errorFunc('error deleting playlist'),
             function(){busy('#playlist-panel').fadeOut('fast')}
@@ -436,22 +418,21 @@ function confirmDeletePlaylist(id,title){
 }
 
 function loadPlaylist(playlistid, playlistlabel){
-    data = {'action':'loadplaylist',
-            'value': playlistid };
     var success = function(data){
-        var tracklist = jQuery.parseJSON(data);
+        var tracklist = data;
         //transform tracks to jplayer format:
         //TODO rewrite jplayer playlist to support CM-music entry format
         var jplayerplaylist = [];
         for(var i=0; i<tracklist.length; i++){
             jplayerplaylist.push({
-                                    'title':tracklist[i].label,
-                                    'url':  tracklist[i].urlpath
-                                });
+                'title':tracklist[i].label,
+                'url':  tracklist[i].urlpath
+            });
         }
         var pl = playlistManager.newPlaylist(jplayerplaylist, playlistlabel);
     }
-    api(data,
+    api('loadplaylist',
+        {'playlistid': playlistid},
         success,
         errorFunc('error loading external playlist'),
         function(){busy('#playlist-panel').fadeOut('fast')}
@@ -461,15 +442,13 @@ function loadPlaylist(playlistid, playlistlabel){
 function loadPlaylistContent(playlistid, playlistlabel){
     "use strict";
     var pldomid = "#playlist"+playlistid+' .playlistcontent';
-
     if('' === $(pldomid).html().trim()){
-        var data = {'action':'loadplaylist',
-                    'value': playlistid };
         var success = function(data){
-            new MediaBrowser(pldomid, jQuery.parseJSON(data), playlistlabel);
+            new MediaBrowser(pldomid, data, playlistlabel);
         };
         busy('#playlist-panel').hide().fadeIn('fast');
-        api(data,
+        api('loadplaylist',
+            {'playlistid': playlistid},
             success,
             errorFunc('error loading external playlist'),
             function(){busy('#playlist-panel').fadeOut('fast')}
@@ -496,7 +475,8 @@ function download_editing_playlist(){
         track_urls.push(htmldecode(p[i].url.slice(6)));
     }
     var tracks_json = JSON.stringify(track_urls)
-    api({action: 'downloadcheck', value: tracks_json},
+    api('downloadcheck',
+        {'filelist': tracks_json},
         function(msg){
             if(msg == 'ok'){
                 //add tracks to hidden form and call to call download using post data
@@ -522,8 +502,7 @@ function reloadPage(){
 
 function logout(){
     "use strict";
-    var success = reloadPage;
-    api('logout',success);
+    api('logout', reloadPage);
 }
 
 /** TEMPLATES **/
@@ -596,12 +575,6 @@ function addNewUser(){
     if(newusername.trim() === '' || newpassword.trim() === ''){
         return;
     }
-    var data = {'action':'adduser',
-                'value' : JSON.stringify({
-                    'username':newusername,
-                    'password':newpassword,
-                    'isadmin':newisadmin
-                })};
     var success = function(data){
         $('#newusername').val('');
         $('#newpassword').val('');
@@ -609,7 +582,12 @@ function addNewUser(){
         updateUserList();
     };
     busy('#adminpanel').hide().fadeIn('fast');
-    api(data,
+    api('adduser',
+        {
+            'username':newusername,
+            'password':newpassword,
+            'isadmin':newisadmin
+        },
         success,
         errorFunc('failed to add new user'),
         function(){busy('#adminpanel').fadeOut('fast')}
@@ -617,33 +595,29 @@ function addNewUser(){
 }
 
 function userDelete(userid){
-    var data = {'action':'setuseroptionfor',
-                'value' : JSON.stringify({
-                    'userid':userid
-                })};
     var success = function(data){
         updateUserList();
     };
     busy('#adminuserlist').hide().fadeIn('fast');
-    api(data,
+    api('setuseroptionfor',
+        { 'userid':userid },
         success,
         errorFunc('failed to delete user'),
-        function(){busy('#adminuserlist').fadeOut('fast')}
+        function(){ busy('#adminuserlist').fadeOut('fast') }
     );
 }
 
 function userSetPermitDownload(userid, allow_download){
-    var data = {'action':'setuseroptionfor',
-                'value' : JSON.stringify({
-                    'optionkey': 'media.may_download',
-                    'optionval': allow_download,
-                    'userid': userid,
-                })};
     var success = function(data){
         updateUserList();
     };
     busy('#adminuserlist').hide().fadeIn('fast');
-    api(data,
+    api('setuseroptionfor',
+        {
+            'optionkey': 'media.may_download',
+            'optionval': allow_download,
+            'userid': userid,
+        },
         success,
         errorFunc('Failed to set user download state'),
         function(){busy('#adminuserlist').fadeOut('fast')}
@@ -654,11 +628,6 @@ function userChangePassword(){
     if (! validateNewPassword($('#newpassword-change'), $('#repeatpassword-change'))) {
         return false;
     }
-    var data = {'action':'userchangepassword',
-                'value' : JSON.stringify({
-                    'oldpassword':$('#oldpassword-change').val(),
-                    'newpassword':$('#newpassword-change').val()
-                })};
     $('#oldpassword-change').val('');
     var success = function(data){
         $('#changePassword').find('input').each(function(idx, el) { $(el).val(''); } )
@@ -666,12 +635,16 @@ function userChangePassword(){
         $('#userOptions').modal('hide');
         successNotify('Password changed successfully!')();
     };
-    busy('#adminpanel').hide().fadeIn('fast');
     var error = function(){
         $('#oldpassword-change').focus();
         $("#changePassword").modal('attention');
     }
-    api(data,
+    busy('#adminpanel').hide().fadeIn('fast');
+    api('userchangepassword',
+        {
+            'oldpassword':$('#oldpassword-change').val(),
+            'newpassword':$('#newpassword-change').val()
+        },
         success,
         error,
         function(){busy('#adminpanel').fadeOut('fast')}
@@ -696,40 +669,20 @@ function enableJplayerDebugging(){
 }
 
 function loadBrowser(){
-    var data = { 'action' : 'listdir' };
     var success = function(data){
-        new MediaBrowser('.search-results', jQuery.parseJSON(data), 'Root');
+        new MediaBrowser('.search-results', data, 'Root');
     };
     busy('#searchfield').hide().fadeIn('fast');
-    api(data,
+    api('listdir',
         success,
         errorFunc('failed to load file browser'),
         function(){busy('#searchfield').fadeOut('fast')});
-}
-var origcolors = {};
-function pulse(selector){
-    "use strict";
-    var elem = $(selector);
-    if(typeof origcolors[selector] === 'undefined'){
-        origcolors[selector] = elem.css('background-color');
-    }
-    elem.stop(true, true);
-    elem.animate({backgroundColor: '#ffffff'+' !important'},100);
-    elem.animate({backgroundColor: origcolors[selector]+' !important'},100);
-    elem.animate({backgroundColor: '#ffffff'+' !important'},100);
-    elem.animate({backgroundColor: origcolors[selector]+' !important'},100);
-    elem.animate({backgroundColor: '#ffffff'+' !important'},100);
-    elem.animate({backgroundColor: origcolors[selector]+' !important'},100);
 }
 
 /***
 HELPER
 ***/
 
-function reload(){
-    "use strict";
-    window.location = "http://"+window.location.host;
-}
 function endsWith(str, suffix) {
     "use strict";
     return str.indexOf(suffix, str.length - suffix.length) !== -1;
@@ -750,18 +703,6 @@ function detectBrowser(){
         }
     }
     return 'unknown';
-}
-/********************
-STYLE TRANSFORMATIONS
-*********************/
-//returns the size of the browser window
-function viewport() {
-    var e = window, a = 'inner';
-    if ( !( 'innerWidth' in window ) ){
-        a = 'client';
-        e = document.documentElement || document.body;
-    }
-    return { width : e[ a+'Width' ] , height : e[ a+'Height' ] }
 }
 
 /*****
@@ -860,6 +801,7 @@ function sendHeartBeat(){
         function(){ /*removeError('connection to server lost') */ },
         errorFunc('connection to server lost'),
         true)
+    window.setTimeout('sendHeartBeat()', HEARTBEAT_INTERVAL_MS);
 }
 
 function userOptionCheckboxListener(htmlid, optionname){
@@ -928,7 +870,6 @@ $(document).ready(function(){
     //window.setInterval("resizePlaylistSlowly()",2000);
     $('#searchform .searchinput').focus();
     sendHeartBeat();
-    window.setInterval("sendHeartBeat()",HEARTBEAT_INTERVAL_MS);
     $('#adminpanel').on('shown.bs.modal', function (e) {
         updateUserList();
     });

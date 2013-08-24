@@ -51,7 +51,6 @@ except ImportError:
 
 import audiotranscode
 
-from cherrymusicserver import renderjson
 from cherrymusicserver import userdb
 from cherrymusicserver import log
 from cherrymusicserver import albumartfetcher
@@ -74,7 +73,6 @@ debug = True
 class HTTPHandler(object):
     def __init__(self, config):
         self.config = config
-        self.jsonrenderer = renderjson.JSON()
 
         template_main = 'res/main.html'
         template_login = 'res/login.html'
@@ -113,7 +111,6 @@ class HTTPHandler(object):
             'heartbeat': self.api_heartbeat,
             'getuseroptions': self.api_getuseroptions,
             'setuseroption': self.api_setuseroption,
-            'customcss.css': self.api_customcss,
             'changeplaylist': self.api_changeplaylist,
             'downloadcheck': self.api_downloadcheck,
             'setuseroptionfor': self.api_setuseroptionfor,
@@ -254,91 +251,17 @@ everybody has to relogin now.''')
         needsAuth = not ('noauth' in dir(handler) and handler.noauth)
         if needsAuth and not self.isAuthorized():
             raise cherrypy.HTTPError(401, 'Unauthorized')
-        #parse value (is list of arguments, but if the list has only
-        #one element, this element is directly passed to the handler)
-        value = kwargs.get('value', '')
-        if not value and len(args) > 1:
-            value = list(map(unquote, args[1:len(args)]))
-            if len(value) == 1:
-                value = value[0]
-        return handler(value)
+        handler_args = {}
+        if 'data' in kwargs:
+            handler_args = json.loads(kwargs['data'])
+        is_binary = ('binary' in dir(handler) and handler.binary)
+        if is_binary:
+            return handler(**handler_args)
+        else:
+            return json.dumps({'data': handler(**handler_args)}) 
+
     api.exposed = True
 
-    def api_customcss(self, value):
-        cherrypy.response.headers["Content-Type"] = 'text/css'
-        opts = self.useroptions.forUser(self.getUserId()).getOptions()
-        primary_color = opts.custom_theme.primary_color.value
-        primary_dark = self.brightness(primary_color, -40)
-        primary_bright = self.brightness(primary_color, 70)
-        style = """
-            .active{{
-                background-color: {primary} !important;
-            }}
-            .button{{
-                background-color: {primary} !important;
-                border-color: {primary_bright} {primary_dark}
-                              {primary_dark} {primary_bright} !important;
-            }}
-            .button:hover{{
-                background-color: {primary_dark} !important;
-                border-color:{primary_dark} {primary_bright}
-                             {primary_bright} {primary_dark} !important;
-            }}
-            .bigbutton{{
-                background-color: {primary} !important;
-                border-color: {primary_bright} {primary_dark}
-                              {primary_dark} {primary_bright} !important;
-            }}
-            .bigbutton:hover{{
-                background-color: {primary_dark} !important;
-                border-color: {primary_dark} {primary_bright}
-                              {primary_bright} {primary_dark} !important;
-            }}
-            .smalltab{{
-                background-color: {primary} !important;
-            }}
-        """.format(primary=opts.custom_theme.primary_color.value,
-                   primary_dark=primary_dark,
-                   primary_bright=primary_bright,
-                   #background = opts.custom_theme.background_color.value,
-                   #text = invert(opts.custom_theme.background_color.value)
-                   )
-        if opts.custom_theme.white_on_black.bool:
-            style += """
-            html{
-                background-color: #000000 !important;
-            }
-            #mediaplayer{
-                background-color: #000000 !important;
-            }
-            .black{
-                color: #ffffff !important;
-            }
-            .listdir, .compactlistdir, .fileinlist{
-                background-color: #222222;
-                color: #ffffff;
-            }
-            li.fileinlist {
-                background-color: #424242 !important;
-            }
-            li.fileinlist a {
-                color: #AFAFAF !important;
-            }
-            .compactlistdir {
-                background-color: #005500 !important;
-            }
-            div.jp-playlist a {
-                color: #FFFFFF !important;
-            }
-            div.jp-title, div.jp-playlist {
-                background-color: #444444 !important;
-            }
-            #playlistCommands {
-                background-color: #444444;
-            }
-            """
-        return style
-        
     def download_check_files(self, filelist):
         # only admins and allowed users may download
         if not cherrypy.session['admin']:
@@ -356,7 +279,7 @@ everybody has to relogin now.''')
         else:
             return 'too_big'
 
-    def api_downloadcheck(self, value):
+    def api_downloadcheck(self, filelist):
         filelist = [unquote(filepath) for filepath in json.loads(value)]
         status = self.download_check_files(filelist)
         if status == 'not_permitted':
@@ -374,7 +297,7 @@ everybody has to relogin now.''')
             log.e("Unknown download file check status '%s'" % status)
             return 'error'
 
-    def download(self, value):
+    def download(self, filelist):
         if not self.isAuthorized():
             raise cherrypy.HTTPError(401, 'Unauthorized')
         filelist = [unquote(filepath) for filepath in json.loads(value)]
@@ -393,61 +316,34 @@ everybody has to relogin now.''')
     download.exposed = True
     download._cp_config = {'response.stream': True}
 
-    def invert(self, htmlcolor):
-        r, g, b = self.html2rgb(htmlcolor)
-        return '#'+self.rgb2hex(255-r, 255-b, 255-b)
-
-    def brightness(self, htmlcolor, brightness):
-        r, g, b = self.html2rgb(htmlcolor)
-        r = min(max(r+brightness, 0), 255)
-        g = min(max(g+brightness, 0), 255)
-        b = min(max(b+brightness, 0), 255)
-        return '#'+self.rgb2hex(r, g, b)
-
-    def html2rgb(self, htmlcolor):
-        r = int(htmlcolor[1:3], 16)
-        g = int(htmlcolor[3:5], 16)
-        b = int(htmlcolor[5:7], 16)
-        return r, g, b
-
-    def rgb2hex(self, r, g, b):
-        r = hex(r)[2:].zfill(2)
-        g = hex(g)[2:].zfill(2)
-        b = hex(b)[2:].zfill(2)
-        return r+g+b
-
-    def api_getuseroptions(self, value):
+    def api_getuseroptions(self):
         uo = self.useroptions.forUser(self.getUserId())
         uco = uo.getChangableOptions()
         if cherrypy.session['admin']:
             uco['media'] = {'may_download': True}
         else:
             uco['media'] = {'may_download': uo.getOptionValue('media.may_download')}
-        return json.dumps(uco)
+        return uco
 
-    def api_heartbeat(self, value):
+    def api_heartbeat(self):
         uo = self.useroptions.forUser(self.getUserId())
         uo.setOption('last_time_online', int(time.time()))
 
-    def api_setuseroption(self, value):
-        params = json.loads(value)
+    def api_setuseroption(self, optionkey, optionval):
         uo = self.useroptions.forUser(self.getUserId())
-        uo.setOption(params["optionkey"], params["optionval"])
+        uo.setOption(optionkey, optionval)
         return "success"
     
-    def api_setuseroptionfor(self, value):
+    def api_setuseroptionfor(self, userid, optionkey, optionval):
         if cherrypy.session['admin']:
-            params = json.loads(value)
-            uo = self.useroptions.forUser(params['userid'])
-            uo.setOption(params["optionkey"], params["optionval"])
+            uo = self.useroptions.forUser(userid)
+            uo.setOption(optionkey, optionval)
             return "success"
         else:
             return "error: not permitted. Only admins can change other users options"
 
-    def api_fetchalbumart(self, value):
+    def api_fetchalbumart(self, directory):
         cherrypy.session.release_lock()
-        params = json.loads(value)
-        directory = params['directory']
 
         #try getting a cached album art image
         b64imgpath = albumArtFilePath(directory)
@@ -480,6 +376,7 @@ everybody has to relogin now.''')
                 return data
         cherrypy.HTTPRedirect("/res/img/folder.png", 302)
     api_fetchalbumart.noauth = True
+    api_fetchalbumart.binary = True
 
     def albumartcache_load(self, imgb64path):
         if os.path.exists(imgb64path):
@@ -490,47 +387,39 @@ everybody has to relogin now.''')
         with open(path, 'wb') as f:
             f.write(data)
 
-    def api_compactlistdir(self, value):
-        params = json.loads(value)
-        dirtorender = params['directory']
-        files_to_list = self.model.listdir(dirtorender, params['filter'])
-        return self.jsonrenderer.render(files_to_list)
+    def api_compactlistdir(self, directory, filterstr=None):
+        files_to_list = self.model.listdir(directory, filterstr)
+        return [entry.to_dict() for entry in files_to_list]
 
-    def api_listdir(self, value):
-        if value:
-            params = json.loads(value)
-            dirtorender = params['directory']
-        else:
-            dirtorender = ''
-        return self.jsonrenderer.render(self.model.listdir(dirtorender))
+    def api_listdir(self, directory=''):
+        return [entry.to_dict() for entry in self.model.listdir(directory)]
 
-    def api_search(self, value):
-        if not value.strip():
+    def api_search(self, searchstring):
+        if not searchstring.strip():
             jsonresults = '[]'
         else:
             with Performance('processing whole search request'):
-                searchresults = self.model.search(value.strip())
+                searchresults = self.model.search(searchstring.strip())
                 with Performance('rendering search results as json'):
-                    jsonresults = self.jsonrenderer.render(searchresults)
+                    jsonresults = [entry.to_dict() for entry in searchresults]
         return jsonresults
 
-    def api_rememberplaylist(self, value):
-        cherrypy.session['playlist'] = value
+    def api_rememberplaylist(self, playlist):
+        cherrypy.session['playlist'] = playlist
 
-    def api_saveplaylist(self, value):
-        pl = json.loads(value)
+    def api_saveplaylist(self, playlist):
         res = self.playlistdb.savePlaylist(
             userid=self.getUserId(),
-            public=1 if pl['public'] else 0,
-            playlist=pl['playlist'],
-            playlisttitle=pl['playlistname'],
-            overwrite=pl.get('overwrite', False))
+            public=1 if playlist['public'] else 0,
+            playlist=playlist['playlist'],
+            playlisttitle=playlist['playlistname'],
+            overwrite=playlist.get('overwrite', False))
         if res == "success":
             return res
         else:
             raise cherrypy.HTTPError(400, res)
 
-    def api_deleteplaylist(self, value):
+    def api_deleteplaylist(self):
         res = self.playlistdb.deletePlaylist(value,
                                              self.getUserId(),
                                              override_owner=False)
@@ -541,13 +430,13 @@ everybody has to relogin now.''')
             # cause without parsing res
             raise cherrypy.HTTPError(400, res)
 
-    def api_loadplaylist(self, value):
-        return self.jsonrenderer.render(self.playlistdb.loadPlaylist(
+    def api_loadplaylist(self):
+        return [entry.to_dict() for entry in self.playlistdb.loadPlaylist(
                                         playlistid=value,
                                         userid=self.getUserId()
-                                        ))
+                                        )]
 
-    def api_changeplaylist(self, value):
+    def api_changeplaylist(self):
         params = json.loads(value)
         is_public = params['attribute'] == 'public'
         is_valid = type(params['value']) == bool and type(params['plid']) == int
@@ -556,18 +445,18 @@ everybody has to relogin now.''')
                                              plid=params['plid'],
                                              value=params['value'])
 
-    def api_getmotd(self, value):
+    def api_getmotd(self):
         return self.model.motd()
 
-    def api_restoreplaylist(self, value):
+    def api_restoreplaylist(self):
         session_playlist = cherrypy.session.get('playlist', '[]')
         return session_playlist
 
-    def api_getplayables(self, value):
+    def api_getplayables(self):
         """DEPRECATED"""
         return json.dumps(cherry.config['media.playable'])
 
-    def api_getuserlist(self, value):
+    def api_getuserlist(self):
         if cherrypy.session['admin']:
             userlist = self.userdb.getUserList()
             for user in userlist:
@@ -583,7 +472,7 @@ everybody has to relogin now.''')
         else:
             return json.dumps({'time': 0, 'userlist': []})
 
-    def api_adduser(self, value):
+    def api_adduser(self):
         if cherrypy.session['admin']:
             new = json.loads(value)
             return self.userdb.addUser(new['username'],
@@ -592,7 +481,7 @@ everybody has to relogin now.''')
         else:
             return "You didn't think that would work, did you?"
 
-    def api_userchangepassword(self, value):
+    def api_userchangepassword(self):
         params = json.loads(value)
         isself = not 'userid' in params
         if isself:
@@ -608,7 +497,7 @@ everybody has to relogin now.''')
         else:
             raise cherrypy.HTTPError(403, "Forbidden")
 
-    def api_userdelete(self, value):
+    def api_userdelete(self):
         params = json.loads(value)
         is_self = cherrypy.session['userid'] == params['userid']
         if cherrypy.session['admin'] and not is_self:
@@ -617,7 +506,7 @@ everybody has to relogin now.''')
         else:
             return "You didn't think that would work, did you?"
 
-    def api_showplaylists(self, value):
+    def api_showplaylists(self):
         playlists = self.playlistdb.showPlaylists(self.getUserId())
         #translate userids to usernames:
         for pl in playlists:
@@ -625,11 +514,11 @@ everybody has to relogin now.''')
             pl['type'] = 'playlist'
         return json.dumps(playlists)
 
-    def api_logout(self, value):
+    def api_logout(self):
         cherrypy.lib.sessions.expire()
     api_logout.no_auth = True
 
-    def api_downloadpls(self, value):
+    def api_downloadpls(self):
         dlval = json.loads(value)
         pls = self.playlistdb.createPLS(dlval['plid'],
                                         self.getUserId(),
@@ -638,7 +527,7 @@ everybody has to relogin now.''')
         if pls and name:
             return self.serve_string_as_file(pls, name+'.pls')
 
-    def api_downloadm3u(self, value):
+    def api_downloadm3u(self):
         dlval = json.loads(value)
         pls = self.playlistdb.createM3U(dlval['plid'],
                                         self.getUserId(),
@@ -647,7 +536,7 @@ everybody has to relogin now.''')
         if pls and name:
             return self.serve_string_as_file(pls, name+'.m3u')
 
-    def api_getsonginfo(self, value):
+    def api_getsonginfo(self):
         basedir = cherry.config['media.basedir']
         #TODO yet another dirty hack. removing the /serve thing is a mess.
         path = unquote(value)
@@ -658,20 +547,20 @@ everybody has to relogin now.''')
         abspath = os.path.join(basedir, path)
         return json.dumps(metainfo.getSongInfo(abspath).dict())
 
-    def api_getencoders(self, value):
+    def api_getencoders(self):
         return json.dumps(audiotranscode.getEncoders())
 
-    def api_getdecoders(self, value):
+    def api_getdecoders(self):
         return json.dumps(audiotranscode.getDecoders())
 
-    def api_transcodingenabled(self, value):
+    def api_transcodingenabled(self):
         return json.dumps(cherry.config['media.transcode'])
 
-    def api_updatedb(self, value):
+    def api_updatedb(self):
         self.model.updateLibrary()
         return 'success'
 
-    def api_getconfiguration(self, value):
+    def api_getconfiguration(self):
         clientconfigkeys = {
             'transcodingenabled': cherry.config['media.transcode'],
             'fetchalbumart': cherry.config['media.fetch_album_art'],
@@ -688,7 +577,7 @@ everybody has to relogin now.''')
         else:
             clientconfigkeys['getdecoders'] = []
             clientconfigkeys['getencoders'] = []
-        return json.dumps(clientconfigkeys)
+        return clientconfigkeys
 
     def serve_string_as_file(self, string, filename):
         content_disposition = 'attachment; filename="'+filename+'"'

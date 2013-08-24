@@ -673,8 +673,7 @@ PlaylistManager.prototype = {
             }
             self.getEditingPlaylist().jplayerplaylist._refresh(true);
         }
-        api({action:'getsonginfo',
-            value: path}, success, errorFunc('error getting song metainfo'), true);
+        api('getsonginfo', {'path': path}, success, errorFunc('error getting song metainfo'), true);
     },
     clearPlaylist : function(){
         "use strict";
@@ -709,13 +708,11 @@ PlaylistManager.prototype = {
         var newToRememberPlaylist = JSON.stringify(canonicalPlaylists)
         if(this.lastRememberedPlaylist !== newToRememberPlaylist){
             // save playlist in session
-            var data = {'action':'rememberplaylist',
-                        'value': newToRememberPlaylist}
             var error = errorFunc('cannot remember playlist: failed to connect to server.');
             var success = function(){
                 self.lastRememberedPlaylist = newToRememberPlaylist;
             }
-            api(data, success, error, true);
+            api('rememberplaylist', {'playlist': canonicalPlaylists}, success, error, true);
         }
     },
     restorePlaylists : function(){
@@ -723,7 +720,7 @@ PlaylistManager.prototype = {
         "use strict";
         /*restore playlist from session*/
         var success = function(data){
-            var playlistsToRestore = $.parseJSON(data);
+            var playlistsToRestore = data;
             if(playlistsToRestore !== null && playlistsToRestore.length>0){
                 window.console.log('should restore playlist now');
                 for(var i=0; i<playlistsToRestore.length; i++){
@@ -742,7 +739,7 @@ PlaylistManager.prototype = {
             window.console.log('remembering playlists periodically');
             window.setInterval("playlistManager.rememberPlaylist()",REMEMBER_PLAYLIST_INTERVAL );
         };
-        api('restoreplaylist',success,errorFunc('error restoring playlist'));
+        api('restoreplaylist', success, errorFunc('error restoring playlist'));
     },
     _createPlaylist : function(playlist, closable, public, owner, reason, name, saved){
         var a = new Date();

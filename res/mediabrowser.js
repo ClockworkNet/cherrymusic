@@ -49,19 +49,18 @@ MediaBrowser = function(cssSelector, json, title){
         var dirdata = {'directory' : directory};
         if(compactlisting){
             action = 'compactlistdir';
-            dirdata['filter'] = $(this).attr("filter");
-            next_mb_title = 'Filter: '+dirdata['filter'];
+            dirdata['filterstr'] = $(this).attr("filter");
+            next_mb_title = 'Filter: '+dirdata['filterstr'];
         } else {
             next_mb_title = $(this).text();
         }
         var currdir = this;
-        var success = function(data){
-            var json = jQuery.parseJSON(data);
+        var success = function(json){
             self.listing_data_stack.push({'title': next_mb_title, 'data': json});
             self.render();
         };
-        api({action: action,
-             value: JSON.stringify(dirdata)},
+        api(action,
+            dirdata,
             success,
             errorFunc('unable to list compact directory'));
         $(this).blur();
@@ -125,19 +124,20 @@ MediaBrowser = function(cssSelector, json, title){
         
         html = '<ol class="breadcrumb"></ol>' + html;
         $(self.cssSelector).html(html);
-        if(self.listing_data_stack.length > 1){
-            var node = $('<div class="cm-media-list-item cm-media-list-parent-item">'+
-            '   <a class="cm-media-list-parent" href="javascript:;">'+
-            '   <span class="glyphicon glyphicon-arrow-left"></span>'+
-            '</a></div>');
-            node.on('click', create_jump_func(1));
-            $(this.cssSelector).prepend(node);
-        }
+        
         var create_jump_func = function(i){
             return function(){
                 self.go_to_parent(self.listing_data_stack.length - 1 - i);
                 self.render();
             };
+        }
+        if(self.listing_data_stack.length > 1){
+            var node = $('<div class="cm-media-list-item cm-media-list-parent-item">'+
+            '   <a class="cm-media-list-parent" href="javascript:;">'+
+            '   <span class="glyphicon glyphicon-arrow-left"></span>'+
+            '</a></div>');
+            node.on('click', create_jump_func(2));
+            $(this.cssSelector).prepend(node);
         }
         for(var i=0; i < self.listing_data_stack.length; i++){
             var title = self.listing_data_stack[i]['title'];
@@ -355,8 +355,8 @@ MediaBrowser.static = {
         $('.list-dir-albumart.unloaded').each(
             function(idx){
                 if($(this).position().top < winpos){
-                   $(this).find('img').attr('src', 'api/fetchalbumart/'+$(this).attr('search-data'));
-                   $(this).removeClass('unloaded');
+                    $(this).find('img').attr('src', 'api/fetchalbumart/?data='+$(this).attr('search-data'));
+                    $(this).removeClass('unloaded');
                 }
             }
         );
