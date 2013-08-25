@@ -29,7 +29,28 @@ body{
     }
 }
 
-
+#shortcut-changer{
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    opacity: 0.8;
+    z-index: 1050;
+    background-color: #fff;
+    
+    & > span{
+        margin: 0px auto;
+        display: block;
+        width: 250px;
+        top: 50%;
+        position: relative;
+        text-align: center;
+    }
+    & > input {
+        display: none;
+    }
+}
 
 
 .shadow-horizontal(@amount){

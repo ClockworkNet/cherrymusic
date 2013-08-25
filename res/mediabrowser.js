@@ -33,7 +33,7 @@ RENDERING
 
 MediaBrowser = function(cssSelector, json, title){
     "use strict";
-    this.listing_data_stack = [{'title': title, 'data': json}];
+    this.listing_data_stack = [{'title': title, 'data': json, 'scroll': 0}];
     this.cssSelector = cssSelector;
 
     var self = this;
@@ -56,7 +56,8 @@ MediaBrowser = function(cssSelector, json, title){
         }
         var currdir = this;
         var success = function(json){
-            self.listing_data_stack.push({'title': next_mb_title, 'data': json});
+            self.listing_data_stack[self.listing_data_stack.length-1].scroll = $(self.cssSelector).parent().parent().scrollTop();
+            self.listing_data_stack.push({'title': next_mb_title, 'data': json, 'scroll': 0});
             self.render();
         };
         api(action,
@@ -150,6 +151,8 @@ MediaBrowser = function(cssSelector, json, title){
             $li.on('click', create_jump_func(i));
             $(this.cssSelector + ' .breadcrumb').append($li);
         }
+        
+        $(self.cssSelector).parent().parent().scrollTop(self.listing_data_stack[self.listing_data_stack.length-1].scroll);
         
         playlistManager.setTrackDestinationLabel();
         MediaBrowser.static.albumArtLoader(cssSelector);
@@ -265,10 +268,15 @@ MediaBrowser.static = {
     
     albumArtLoader: function(cssSelector){
         "use strict";
-        var winpos = $(window).height()+$(window).scrollTop();
-        $('.list-dir-albumart.unloaded').each(
+        var winheight = $(window).height();
+        var scrolled_down = $(cssSelector).scrollTop();
+        var preload_threshold = 100; //pixels
+        $(cssSelector).find('.list-dir-albumart.unloaded').each(
             function(idx){
-                if($(this).position().top < winpos){
+                var img_pos = $(this).position().top;
+                var above_screen = img_pos < scrolled_down - preload_threshold;
+                var below_screen = img_pos > winheight + scrolled_down + preload_threshold;
+                if(!above_screen && !below_screen){
                     $(this).find('img').attr('src', 'api/fetchalbumart/?data='+$(this).attr('search-data'));
                     $(this).removeClass('unloaded');
                 }

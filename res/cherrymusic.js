@@ -893,7 +893,10 @@ $(document).ready(function(){
     loadUserOptions(initKeyboardshortcuts);    
     api('getmotd',function(data){$('#oneliner').text(data)},
         errorFunc('could not fetch message of the day'));
-    window.onscroll = MediaBrowser.static.albumArtLoader; //enable loading of images when in viewport
+    $('#search-panel').on('scroll', function(){
+        //enable loading of images when in viewport
+        MediaBrowser.static.albumArtLoader('#search-panel');
+    });
     
     //register top level directories
     $('div#progressscreen').fadeOut('slow');
