@@ -274,13 +274,15 @@ everybody has to relogin now.''')
                 return 'invalid_file'
         # make sure all files are smaller than maximum download size
         size_limit = cherry.config['media.maximum_download_size']
-        if self.model.file_size_within_limit(filelist, size_limit):
-            return 'ok'
-        else:
-            return 'too_big'
+        try:
+            if self.model.file_size_within_limit(filelist, size_limit):
+                return 'ok'
+            else:
+                return 'too_big'
+        except FileNotFoundError as e:
+            return str(e)
 
     def api_downloadcheck(self, filelist):
-        filelist = [unquote(filepath) for filepath in json.loads(value)]
         status = self.download_check_files(filelist)
         if status == 'not_permitted':
             return """You are not allowed to download files."""
@@ -294,13 +296,16 @@ everybody has to relogin now.''')
         elif status == 'ok':
             return status
         else:
-            log.e("Unknown download file check status '%s'" % status)
-            return 'error'
+            message = "Error status check for download: '%s'" % status
+            log.e(message)
+            return message
 
-    def download(self, filelist):
+    def download(self, value):
         if not self.isAuthorized():
             raise cherrypy.HTTPError(401, 'Unauthorized')
-        filelist = [unquote(filepath) for filepath in json.loads(value)]
+        print(value)
+        print(unquote(value))
+        filelist = [unquote(filepath) for filepath in json.loads(unquote(value))]
         dlstatus = self.download_check_files(filelist)
         if dlstatus == 'ok':
             cherrypy.session.release_lock()
@@ -430,9 +435,9 @@ everybody has to relogin now.''')
             # cause without parsing res
             raise cherrypy.HTTPError(400, res)
 
-    def api_loadplaylist(self):
+    def api_loadplaylist(self, playlistid):
         return [entry.to_dict() for entry in self.playlistdb.loadPlaylist(
-                                        playlistid=value,
+                                        playlistid=playlistid,
                                         userid=self.getUserId()
                                         )]
 
@@ -472,12 +477,11 @@ everybody has to relogin now.''')
         else:
             return json.dumps({'time': 0, 'userlist': []})
 
-    def api_adduser(self):
+    def api_adduser(self, username, password, isadmin):
         if cherrypy.session['admin']:
-            new = json.loads(value)
-            return self.userdb.addUser(new['username'],
-                                       new['password'],
-                                       new['isadmin'])
+            return self.userdb.addUser(username,
+                                       password,
+                                       isadmin)
         else:
             return "You didn't think that would work, did you?"
 
@@ -512,7 +516,7 @@ everybody has to relogin now.''')
         for pl in playlists:
             pl['username'] = self.userdb.getNameById(pl['userid'])
             pl['type'] = 'playlist'
-        return json.dumps(playlists)
+        return playlists
 
     def api_logout(self):
         cherrypy.lib.sessions.expire()
@@ -536,14 +540,8 @@ everybody has to relogin now.''')
         if pls and name:
             return self.serve_string_as_file(pls, name+'.m3u')
 
-    def api_getsonginfo(self):
+    def api_getsonginfo(self, path):
         basedir = cherry.config['media.basedir']
-        #TODO yet another dirty hack. removing the /serve thing is a mess.
-        path = unquote(value)
-        if path.startswith('/serve/'):
-            path = path[7:]
-        elif path.startswith('serve/'):
-            path = path[6:]
         abspath = os.path.join(basedir, path)
         return json.dumps(metainfo.getSongInfo(abspath).dict())
 

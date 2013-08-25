@@ -13,7 +13,7 @@
     &-item{
         list-style-type: none;
         word-wrap: break-word;
-        margin: 5px 0;
+        margin: 5px 5px 5px 0;
     }
     
     & > li:nth-child(odd) {
@@ -46,6 +46,7 @@
         display: block;
         white-space: nowrap;
         color: @gray-light;
+        overeflow: hidden;
     }
     
     & > .simplelabel{
@@ -74,7 +75,7 @@
     }
     
     &-item{
-        float: left;
+        display: inline-block;
         width: 120px;
         height: 120px;
         overflow: hidden;
@@ -100,21 +101,36 @@
     }
 }
 
-.playlist-browser-list{
-    &-item{
+.playlist{
+    &-browser-list-item{
         list-style-type: none;
+        margin-right: 20px;
         
         &-container{
             display: table;
+            width: 100%;
+            
             & > div{
                 display: table-row;
                 & > div{
                     display: table-cell;
-                    &:first-child{
-                        width: 50%;
-                    }
                 }
             }
         }
+    }
+    &-detail-switch{
+        width: 1%;
+    }
+    &-title{
+        width: 99%;
+    }
+    &-ispublic{
+        width: 1%;
+    }
+    &-usernamelabel{
+        width: 1%;
+    }
+    &-deletebutton{
+        width: 1%;
     }
 }

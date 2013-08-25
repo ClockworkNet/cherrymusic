@@ -665,7 +665,6 @@ PlaylistManager.prototype = {
                 playlist.jplayerplaylist.select(0);
             }
         }
-        pulse('.tabNavigation li a.jplayer');
         var success = function(data){
             var metainfo = $.parseJSON(data)
             if (metainfo.length) {
@@ -673,7 +672,7 @@ PlaylistManager.prototype = {
             }
             self.getEditingPlaylist().jplayerplaylist._refresh(true);
         }
-        api('getsonginfo', {'path': path}, success, errorFunc('error getting song metainfo'), true);
+        api('getsonginfo', {'path': decodeURIComponent(path)}, success, errorFunc('error getting song metainfo'), true);
     },
     clearPlaylist : function(){
         "use strict";

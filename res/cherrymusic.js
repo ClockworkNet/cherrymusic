@@ -256,16 +256,17 @@ function busy(selector){
     return domelem;
 }
 
-function search(append){
+function search($form){
     "use strict";
-    if($('#searchfield input').val().trim() == ""){
+    var $input = $form.find('input');
+    if($input.val().trim() == ""){
         //make sure no spaces, so placeholder is shown
-        $('#searchfield input').val('');
-        $('#searchfield input').prop('placeholder', 'Search for what?')
-        $('#searchfield input').focus();
+        $input.val('');
+        $input.prop('placeholder', 'Search for what?');
+        $input.focus();
         return false;
     }
-    var searchstring = $('#searchfield input').val();
+    var searchstring = $input.val();
     var success = function(json){
         new MediaBrowser('.search-results', json, 'Search: '+htmlencode(searchstring));
         busy('#searchform').fadeOut('fast');
@@ -369,7 +370,7 @@ function showPlaylists(){
     "use strict";
     var success = function(data){
         var addressAndPort = getAddrPort();
-        new MediaBrowser('.search-results', data);
+        new MediaBrowser('.search-results', data, 'Playlist browser');
     };
     var error = errorFunc('error loading external playlists');
 
@@ -472,15 +473,14 @@ function download_editing_playlist(){
     var p = pl.jplayerplaylist.playlist;
     var track_urls = []
     for(i=0; i<p.length; i++){
-        track_urls.push(htmldecode(p[i].url.slice(6)));
+        track_urls.push(decodeURIComponent(p[i].url));
     }
-    var tracks_json = JSON.stringify(track_urls)
     api('downloadcheck',
-        {'filelist': tracks_json},
+        {'filelist': track_urls},
         function(msg){
             if(msg == 'ok'){
                 //add tracks to hidden form and call to call download using post data
-                $('#download-redirect-files').val(tracks_json);
+                $('#download-redirect-files').val(encodeURIComponent(JSON.stringify(track_urls)));
                 $('#download-redirect').submit();
             } else {
                 alert(msg);
@@ -528,9 +528,22 @@ function TemplateLoader(template_path){
             $jqobj.html(Mustache.render(template, content));
         });
     }
+    this.cached = function(template_name){
+        if(this.loaded_templates.hasOwnProperty(template_name)){
+            return this.loaded_templates[template_name];
+        } else {
+            window.console.error('Can not return unloaded template '+template_name+'!');
+            return '';
+        }
+    }
 }
 var templateLoader = new TemplateLoader('res/templates');
-
+//preload templates for mediabrowser
+templateLoader.get('mediabrowser-directory');
+templateLoader.get('mediabrowser-file');
+templateLoader.get('mediabrowser-compact');
+templateLoader.get('mediabrowser-message');
+templateLoader.get('mediabrowser-playlist');
 /***
 ADMIN PANEL
 ***/
@@ -749,6 +762,23 @@ function time2text(sec){
         return sec > 0 ? t+' ago' : 'in '+t;
     }
 }
+
+function dec2Hex(dec){
+    var hexChars = "0123456789ABCDEF";
+    var a = dec % 16;
+    var b = (dec - a)/16;
+    hex = hexChars.charAt(b) + hexChars.charAt(a);
+    return hex;
+}
+
+function userNameToColor(username){
+    username = username.toUpperCase();
+    username+='AAA';
+    var g = ((ord(username[0])-65)*255)/30;
+    var b = ((ord(username[1])-65)*255)/30;
+    var r = ((ord(username[2])-65)*255)/30;
+    return '#'+dec2Hex(r)+dec2Hex(g)+dec2Hex(b);
+} 
 
 /*****************
  * KEYBOARD SHORTCUTS
