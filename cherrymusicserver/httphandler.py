@@ -79,10 +79,12 @@ class HTTPHandler(object):
         template_main = 'res/main.html'
         template_login = 'res/login.html'
         template_firstrun = 'res/firstrun.html'
+        template_room = 'res/room.html'
 
         self.mainpage = readRes(template_main)
         self.loginpage = readRes(template_login)
         self.firstrunpage = readRes(template_firstrun)
+        self.roompage = readRes(template_room)
 
         self.handlers = {
             'search': self.api_search,
@@ -145,6 +147,7 @@ class HTTPHandler(object):
             self.mainpage = readRes('res/main.html')
             self.loginpage = readRes('res/login.html')
             self.firstrunpage = readRes('res/firstrun.html')
+            self.roompage = readRes('res/room.html')
         if 'login' in kwargs:
             username = kwargs.get('username', '')
             password = kwargs.get('password', '')
@@ -697,3 +700,13 @@ everybody has to relogin now.''')
         cherrypy.response.headers["Content-Type"] = "application/x-download"
         cherrypy.response.headers["Content-Disposition"] = content_disposition
         return codecs.encode(string, "UTF-8")
+
+    """ Room handling """
+
+    def room(self, *args, **kwargs):
+        self.getBaseUrl(redirect_unencrypted=True)
+        if self.isAuthorized():
+            return self.roompage
+        else:
+            return self.loginpage
+    room.exposed = True
