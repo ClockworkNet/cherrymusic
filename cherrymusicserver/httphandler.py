@@ -53,6 +53,7 @@ import audiotranscode
 
 from cherrymusicserver import renderjson
 from cherrymusicserver import userdb
+from cherrymusicserver import roommodel
 from cherrymusicserver import log
 from cherrymusicserver import albumartfetcher
 from cherrymusicserver import service
@@ -85,6 +86,8 @@ class HTTPHandler(object):
         self.loginpage = readRes(template_login)
         self.firstrunpage = readRes(template_firstrun)
         self.roompage = readRes(template_room)
+
+        self.rooms = {}
 
         self.handlers = {
             'search': self.api_search,
@@ -120,6 +123,8 @@ class HTTPHandler(object):
             'changeplaylist': self.api_changeplaylist,
             'downloadcheck': self.api_downloadcheck,
             'setuseroptionfor': self.api_setuseroptionfor,
+
+            'rooms': self.api_rooms,
         }
 
     def issecure(self, url):
@@ -213,6 +218,16 @@ everybody has to relogin now.''')
         cherrypy.session['username'] = user.name
         cherrypy.session['userid'] = user.uid
         cherrypy.session['admin'] = user.isadmin
+
+    def getUser(self):
+        userid = self.getUserId()
+        return userdb.User(
+            userid,
+            cherrypy.session['username'],
+            cherrypy.session['admin'],
+            None,
+            None
+        )
 
     def getUserId(self):
         try:
@@ -701,12 +716,45 @@ everybody has to relogin now.''')
         cherrypy.response.headers["Content-Disposition"] = content_disposition
         return codecs.encode(string, "UTF-8")
 
-    """ Room handling """
 
-    def room(self, *args, **kwargs):
+    """ Room handling """
+    def room(self, name=None, message=None):
         self.getBaseUrl(redirect_unencrypted=True)
         if self.isAuthorized():
+            user = self.getUser()
+            room = self.ensure_room(name, message)
+            room.join(user)
             return self.roompage
         else:
             return self.loginpage
     room.exposed = True
+
+    def api_song(self, room):
+        if room not in self.rooms:
+            return json.dumps({})
+        return json.dumps({
+            'url'     : self.rooms[room].track,
+            'started' : self.rooms[room].track_start,
+        })
+
+    def api_undj(self, room):
+        if room in self.rooms:
+            self.rooms[room].undj(self.getUserId())
+
+    def api_dj(self, room):
+        if room in self.rooms:
+            self.rooms[room].dj(self.getUserId())
+
+    def api_leave(self, room):
+        if room in self.rooms:
+            self.rooms[room].leave(self.getUserId())
+
+    def api_rooms(self, value):
+        return json.dumps(self.rooms.keys())
+
+    """ Ensures that a room exists """
+    def ensure_room(self, name, message=None):
+        if not name in self.rooms:
+            log.d("Creating new room '{0}'".format(name))
+            self.rooms[name] = roommodel.RoomModel(name, message)
+        return self.rooms[name]
