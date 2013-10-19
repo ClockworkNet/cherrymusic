@@ -755,7 +755,8 @@ everybody has to relogin now.''')
 
     def api_roomusers(self, room):
         if room in self.rooms:
-            return json.dumps(self.rooms[room].users)
+            members = [m.as_dict() for m in self.rooms[room].members]
+            return json.dumps(members)
 
     """ Ensures that a room exists """
     def ensure_room(self, name):

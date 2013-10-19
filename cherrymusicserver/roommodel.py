@@ -6,6 +6,23 @@ from cherrymusicserver import service
 from cherrymusicserver import configuration
 from cherrymusicserver import userdb 
 
+class RoomMember():
+    def __init__(self, user):
+        self.uid = user.uid
+        self.name = user.name
+        self.isadmin = user.isadmin
+        self.playlist = None
+        self.dj = None
+
+    def as_dict(self):
+        return {
+            'uid': self.uid,
+            'name': self.name,
+            'isadmin': self.isadmin,
+            'playlist': self.playlist,
+            'dj': self.dj,
+        }
+
 @service.user(cache='filecache', 
         model='cherrymodel',
         playlistdb='playlist',
@@ -48,7 +65,7 @@ class RoomModel:
         return sorted(djs, key=lambda u: u.dj)
 
 
-    def find_user_in_room(self, uid):
+    def find_member(self, uid):
         if not self.members: return None
         try:
             return next(user for user in self.members if user and user.uid == uid)
@@ -57,40 +74,40 @@ class RoomModel:
 
 
     def join(self, uid):
-        user = self.find_user_in_room(uid)
+        user = self.find_member(uid)
         if user: return
         user = self.userdb.getUser(uid)
-        if user: self.members.append(user)
+        if user: self.members.append(RoomMember(user))
 
 
     def leave(self, uid):
-        user = self.find_user_in_room(uid)
+        user = self.find_member(uid)
         if user is None: return
         self.members.remove(user)
         self.reorder_djs()
 
 
     def dj(self, uid, plid=None):
-        user = self.find_user_in_room(uid)
-        if user is None: return
+        member = self.find_member(uid)
+        if member is None: return
 
-        index = max(user.dj for user in self.members if user and user.dj)
+        index = max(m.dj for m in self.members if m)
 
         if plid:
-            user.playlist = plid
+            member.playlist = plid
         else:
-            user.playlist = self.playlist.getFirstPlaylistId(uid)
+            member.playlist = self.playlistdb.getFirstPlaylistId(uid)
 
         if index is None:
-            user.dj = 0
-            self.current_dj = user
+            member.dj = 0
+            self.current_dj = member
             self.next_song()
         else:
-            user.dj = index + 1
+            member.dj = index + 1
 
 
     def undj(self, uid):
-        user = self.find_user_in_room(uid)
+        user = self.find_member(uid)
         if not user: return
         user.dj = None
         self.reorder_djs()
@@ -106,7 +123,7 @@ class RoomModel:
 
 
     def select_playlist(self, uid, plid=None):
-        user = self.find_user_in_room(uid)
+        user = self.find_member(uid)
         if not user: return
         if plid:
             user.playlist = plid
@@ -125,11 +142,11 @@ class RoomModel:
             self.undj(dj.uid)
             self.next_song()
             return
-        pl = self.playlist.loadPlaylist(dj.playlist, dj.uid)
+        pl = self.playlistdb.loadPlaylist(dj.playlist, dj.uid)
         if not pl:
             self.undj(dj.uid)
             self.next_song()
             return
         self.track = pl[0]
         self.track_start = time.time()
-        self.playlist.popPlaylist(dj.playlist)
+        self.playlistdb.popPlaylist(dj.playlist)

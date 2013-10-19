@@ -138,11 +138,11 @@ class PlaylistDB:
     """ Moves the first playlist track to the last """
     def popPlaylist(self, plid):
         cur = self.conn.cursor()
-        cur.execute("UPDATE playlists SET track = track - 1 WHERE rowid = ?", (plid,))
-        cur.execute("SELECT MAX(track) FROM playlists WHERE rowid = ?", (plid,))
+        cur.execute("UPDATE tracks SET track = track - 1 WHERE playlistid = ?", (plid,))
+        cur.execute("SELECT MAX(track) FROM tracks WHERE playlistid = ?", (plid,))
         max = cur.fetchone()
         if max:
-            cur.execute("UPDATE playlists SET track = ? WHERE track = -1", (max[0] + 1,))
+            cur.execute("UPDATE tracks SET track = ? WHERE track = -1 AND playlistid = ?", (max[0] + 1, plid))
 
     def createPLS(self,userid,plid, addrstr):
         pl = self.loadPlaylist(userid, plid)
