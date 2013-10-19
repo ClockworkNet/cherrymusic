@@ -111,6 +111,11 @@ class UserDB:
             ret.append({'id':uid, 'username':user, 'admin':admin,'deletable':self.isDeletable(uid)})
         return ret
 
+    def getUser(self, userid):
+        res = self.conn.execute("SELECT rowid, username, admin FROM users WHERE rowid = ?", (userid,))
+        row = res.fetchone()
+        return User(row[0], row[1], row[2], None, None) if row else User.nobody()
+
     def getUserCount(self):
         cur = self.conn.cursor()
         cur.execute('''SELECT COUNT(*) FROM users''')
