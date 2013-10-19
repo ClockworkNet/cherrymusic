@@ -125,7 +125,7 @@ class HTTPHandler(object):
             'setuseroptionfor': self.api_setuseroptionfor,
 
             'rooms': self.api_rooms,
-            'roomusers': self.api_roomusers,
+            'roominfo': self.api_roominfo,
             'dj': self.api_dj,
             'undj': self.api_undj,
             'song': self.api_song,
@@ -727,22 +727,21 @@ everybody has to relogin now.''')
 
     def api_song(self, room):
         if room in self.rooms:
-            return json.dumps({
-                'url'     : self.rooms[room].track,
-                'started' : self.rooms[room].track_start,
-            })
+            return json.dumps(self.rooms[room].song.dict())
 
     def api_undj(self, room):
         if room in self.rooms:
             uid = self.getUserId()
             log.i("Dropped DJ {0}".format(uid))
             self.rooms[room].undj(uid)
+        return self.api_roominfo(room)
 
     def api_dj(self, room):
         if room in self.rooms:
             uid = self.getUserId()
             log.i("Added DJ {0}".format(uid))
             self.rooms[room].dj(uid)
+        return self.api_roominfo(room)
 
     def api_leave(self, room):
         if room in self.rooms:
@@ -753,10 +752,17 @@ everybody has to relogin now.''')
     def api_rooms(self, value):
         return json.dumps(self.rooms.keys())
 
-    def api_roomusers(self, room):
+    def api_roominfo(self, room):
         if room in self.rooms:
-            members = [m.as_dict() for m in self.rooms[room].members]
-            return json.dumps(members)
+            r = self.rooms[room]
+            info = {
+                'name': r.name,
+                'message': r.message,
+                'song': r.song.dict(),
+                'dj': r.current_dj.name if r.current_dj else None,
+                'members': [m.dict() for m in r.members],
+            }
+            return json.dumps(info)
 
     """ Ensures that a room exists """
     def ensure_room(self, name):
