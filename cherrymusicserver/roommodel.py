@@ -16,7 +16,9 @@ class RoomSong():
     def __init__(self, path=None, started=None):
         self.started = started if started else time.time()
         if not path:
-            self.info = metainfo.MockTag()
+            self.path    = None
+            self.abspath = None
+            self.info    = metainfo.MockTag()
         else:
             basedir = cherry.config['media.basedir']
             path = unquote(path)
@@ -24,16 +26,18 @@ class RoomSong():
                 path = path[7:]
             elif path.startswith('serve/'):
                 path = path[6:]
-
             self.path = path
             self.abspath = os.path.join(basedir, path)
             self.info = metainfo.getSongInfo(self.abspath)
 
-            self.artist = self.info.artist
-            self.album = self.info.album
-            self.title = self.info.title
-            self.track = self.info.track
-            self.length = self.info.length
+        self.load_info_properties()
+
+    def load_info_properties(self):
+        self.artist = self.info.artist
+        self.album = self.info.album
+        self.title = self.info.title
+        self.track = self.info.track
+        self.length = self.info.length
 
     def dict(self):
         d = self.info.dict()
@@ -162,7 +166,7 @@ class RoomModel:
         user = self.find_member(uid)
         if not user: return
         if plid:
-            user.playlist = plid
+            user.playlist = int(plid)
         else: 
             user.playlist = self.playlist.getFirstPlaylistId(uid)
 
