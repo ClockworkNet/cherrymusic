@@ -53,6 +53,7 @@ class RoomMember():
         self.isadmin = user.isadmin
         self.playlist = None
         self.dj = None
+        self.joined = time.time()
 
     def dict(self):
         return {
@@ -61,6 +62,7 @@ class RoomMember():
             'isadmin': self.isadmin,
             'playlist': self.playlist,
             'dj': self.dj,
+            'joined': self.joined,
         }
 
 @service.user(cache='filecache', 
@@ -91,7 +93,7 @@ class RoomModel:
         if self.current_dj:
             next_index = self.current_dj.dj + 1 % self.max_djs
         else:
-            next_index = 0
+            next_index = 1
 
         try:
             self.current_dj = next(user for user in djs if djs.dj == next_index)
@@ -139,7 +141,7 @@ class RoomModel:
             member.playlist = self.playlistdb.getFirstPlaylistId(uid)
 
         if index is None:
-            member.dj = 0
+            member.dj = 1
             self.current_dj = member
             self.next_song()
         else:
@@ -155,11 +157,11 @@ class RoomModel:
 
     """ Adjusts the order of the djs """
     def reorder_djs(self):
-        dj = 0
-        def adjust(user):
-            user.dj = dj
-            dj += 1
-        map(adjust, self.get_djs())
+        djs = self.get_djs()
+        i = 1
+        for m in djs:
+            m.dj = i
+            i += 1
 
 
     def select_playlist(self, uid, plid=None):

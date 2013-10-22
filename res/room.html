@@ -37,6 +37,7 @@
 <!-- <link href="/res/bootstrap/css/bootstrap-responsive.min.css" rel="stylesheet"> -->
 
 <script src="/res/js/angular.min.js"></script>
+<script src="/res/js/cwfm.filters.js"></script>
 <script src="/res/js/cwfm.room.js"></script>
 
 <title>Room</title>
@@ -52,12 +53,22 @@
 
             <dt>Time Remaining</dt>
             <dd>{{song_remaining() | time}}</dd>
+
+            <dt>Played By</dt>
+            <dd>{{room.dj.name}}</dd>
         </dl>
+
+        <h2>DJs</h2>
+        <ul>
+            <li ng-repeat="member in room.members | filter:is_dj:member">
+                {{is_dj(member) | checkmark}}{{member.name}}
+            </li>
+        </ul>
 
         <h2>Room members</h2>
         <ul>
-            <li ng-repeat="member in room.members">
-                {{dj(member) | checkmark}}{{member.name}}
+            <li ng-repeat="member in room.members | filter:not(is_dj):member">
+                {{is_dj(member) | checkmark}}{{member.name}}
             </li>
         </ul>
 
