@@ -41,7 +41,7 @@ from cherrymusicserver import pathprovider
 from logging import NOTSET, DEBUG, INFO, WARN, WARNING, ERROR, CRITICAL, FATAL
 
 
-LOGLEVEL = INFO
+LOGLEVEL = DEBUG
 
 class RelocateLoggingCall(logging.Filter):
     '''using this module's logging methods puts some misleading values into

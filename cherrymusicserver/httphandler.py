@@ -53,6 +53,7 @@ import audiotranscode
 
 from cherrymusicserver import renderjson
 from cherrymusicserver import userdb
+from cherrymusicserver import roommodel
 from cherrymusicserver import log
 from cherrymusicserver import albumartfetcher
 from cherrymusicserver import service
@@ -85,6 +86,8 @@ class HTTPHandler(object):
         self.loginpage = readRes(template_login)
         self.firstrunpage = readRes(template_firstrun)
         self.roompage = readRes(template_room)
+
+        self.rooms = {}
 
         self.handlers = {
             'search': self.api_search,
@@ -120,6 +123,14 @@ class HTTPHandler(object):
             'changeplaylist': self.api_changeplaylist,
             'downloadcheck': self.api_downloadcheck,
             'setuseroptionfor': self.api_setuseroptionfor,
+
+            'rooms': self.api_rooms,
+            'roominfo': self.api_roominfo,
+            'dj': self.api_dj,
+            'undj': self.api_undj,
+            'song': self.api_song,
+            'leave': self.api_leave,
+            'selectplaylist': self.api_selectplaylist,
         }
 
     def issecure(self, url):
@@ -147,7 +158,6 @@ class HTTPHandler(object):
             self.mainpage = readRes('res/main.html')
             self.loginpage = readRes('res/login.html')
             self.firstrunpage = readRes('res/firstrun.html')
-            self.roompage = readRes('res/room.html')
         if 'login' in kwargs:
             username = kwargs.get('username', '')
             password = kwargs.get('password', '')
@@ -701,12 +711,71 @@ everybody has to relogin now.''')
         cherrypy.response.headers["Content-Disposition"] = content_disposition
         return codecs.encode(string, "UTF-8")
 
-    """ Room handling """
 
-    def room(self, *args, **kwargs):
+    """ Room handling """
+    def room(self, room_name):
         self.getBaseUrl(redirect_unencrypted=True)
+        if debug:
+            self.roompage = readRes('res/room.html')
         if self.isAuthorized():
+            uid = self.getUserId()
+            room = self.ensure_room(room_name)
+            room.join(uid)
+            log.i("{0} joined room {1}".format(uid, room_name))
             return self.roompage
         else:
             return self.loginpage
     room.exposed = True
+
+    def api_song(self, room):
+        if room in self.rooms:
+            return json.dumps(self.rooms[room].song.dict())
+
+    def api_undj(self, room):
+        if room not in self.rooms: return
+        uid = self.getUserId()
+        log.i("Dropped DJ {0}".format(uid))
+        self.rooms[room].undj(uid)
+        return self.api_roominfo(room)
+
+    def api_dj(self, room):
+        if room not in self.rooms: return
+        uid = self.getUserId()
+        log.i("Added DJ {0}".format(uid))
+        self.rooms[room].dj(uid)
+        return self.api_roominfo(room)
+
+    def api_leave(self, room):
+        if room not in self.rooms: return
+        uid = self.getUserId()
+        log.i("{0} left room {0}".format(uid, room))
+        self.rooms[room].leave(uid)
+        return self.api_roominfo(room)
+
+    def api_rooms(self, value):
+        return json.dumps(self.rooms.keys())
+
+    def api_selectplaylist(self, values):
+        (room, plid) = values
+        if not room in self.rooms: return
+        self.rooms[room].select_playlist(self.getUserId(), plid)
+        return self.api_roominfo(room)
+
+    def api_roominfo(self, room):
+        if room not in self.rooms: return
+        r = self.rooms[room]
+        info = {
+            'name': r.name,
+            'message': r.message,
+            'song': r.song.dict(),
+            'dj': r.current_dj.name if r.current_dj else None,
+            'members': [m.dict() for m in r.members],
+        }
+        return json.dumps(info)
+
+    """ Ensures that a room exists """
+    def ensure_room(self, name):
+        if not name in self.rooms:
+            log.d("Creating new room '{0}'".format(name))
+            self.rooms[name] = roommodel.RoomModel(name)
+        return self.rooms[name]

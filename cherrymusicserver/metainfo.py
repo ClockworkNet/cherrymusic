@@ -74,12 +74,13 @@ class Metainfo():
 
 #stagger
         
-class MockTag():
+class MockTag(Metainfo):
     def __init__(self):
-        self.artist = '-'
-        self.album = '-'
-        self.title = '-'
-        self.track = '-'
+        self.artist = ''
+        self.album  = ''
+        self.title  = ''
+        self.track  = ''
+        self.length = 0
        
 def getSongInfo(filepath):
     if has_stagger:

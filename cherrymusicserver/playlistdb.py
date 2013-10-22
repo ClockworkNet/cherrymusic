@@ -125,9 +125,24 @@ class PlaylistDB:
         cur = self.conn.cursor()
         #change rowid to id to match api
         cur.execute("""SELECT rowid as id,title, userid, public FROM playlists WHERE
-            public = 1 OR userid = ?""", (userid,));
+            public = 1 OR userid = ?""", (userid,))
         res = cur.fetchall()
         return list(map(lambda x: {'plid':x[0], 'title':x[1], 'userid':x[2],'public':bool(x[3]), 'owner':bool(userid==x[2])}, res))
+
+    def getFirstPlaylistId(self, userid):
+        cur = self.conn.cursor()
+        cur.execute("SELECT rowid FROM playlists WHERE userid = ?", (userid,))
+        res = cur.fetchone()
+        return res[0] if res else None
+
+    """ Moves the first playlist track to the last """
+    def popPlaylist(self, plid):
+        cur = self.conn.cursor()
+        cur.execute("UPDATE tracks SET track = track - 1 WHERE playlistid = ?", (plid,))
+        cur.execute("SELECT MAX(track) FROM tracks WHERE playlistid = ?", (plid,))
+        max = cur.fetchone()
+        if max:
+            cur.execute("UPDATE tracks SET track = ? WHERE track = -1 AND playlistid = ?", (max[0] + 1, plid))
 
     def createPLS(self,userid,plid, addrstr):
         pl = self.loadPlaylist(userid, plid)
