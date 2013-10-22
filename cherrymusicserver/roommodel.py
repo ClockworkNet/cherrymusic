@@ -75,7 +75,7 @@ class RoomModel:
         self.message = message
         self.roomsong = RoomSong()
         self.members = []
-        self.max_djs = 5 # @todo: add to config: cherry.config['room.max_djs']
+        self.max_djs = cherry.config['room.max_djs']
         self.current_dj = None
 
 

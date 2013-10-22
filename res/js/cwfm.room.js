@@ -1,12 +1,9 @@
-var PING = 1000;
-
-var roomApp  =  angular.module( 'cwfmRoomApp', [ 'cwfmFilters' ] );
-
-roomApp.controller( 'cwfmRoomCtrl', [ '$scope', '$http',
-function cwfmRoomCtrl( $scope, $http ) {
+if ( typeof cwfm == 'undefined' ) var cwfm  =  {};
+cwfm.room  =  { ping: 1000 };
+cwfm.room.ctrl  =  function( $scope, $http ) {
 
     var init  =  function( ) {
-        $scope.heartbeat  =  setInterval( function( ) { api( 'roominfo' ) }, PING );
+        $scope.heartbeat  =  setInterval( function( ) { api( 'roominfo' ) }, cwfm.room.ping );
         $scope.api( 'roominfo' );
     };
 
@@ -61,4 +58,4 @@ function cwfmRoomCtrl( $scope, $http ) {
     $scope.api  =  api;
 
     init( );
-}]);
+};

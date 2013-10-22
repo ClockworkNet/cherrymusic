@@ -39,6 +39,8 @@
 <script src="/res/js/angular.min.js"></script>
 <script src="/res/js/cwfm.filters.js"></script>
 <script src="/res/js/cwfm.room.js"></script>
+<script src="/res/js/cwfm.playlist.js"></script>
+<script src="/res/js/cwfm.app.js"></script>
 
 <title>Room</title>
 </head>
@@ -76,11 +78,14 @@
         <ul>
             <li><a ng-click="api('dj')"             href="#dj">DJ</a></li>
             <li><a ng-click="api('undj')"           href="#undj">Stop DJing</a></li>
-            <li><a ng-click="api('song')"           href="#song">Song info</a></li>
             <li><a ng-click="api('selectplaylist')" href="#selectplaylist">Select Playlist <input type="text"  value="1" name="plid" /></a></li>
             <li><a ng-click="api('roominfo')"       href="#roominfo">Room info</a></li>
             <li><a ng-click="api('leave')"          href="#leave">Leave Room</a></li>
         </ul>
+    </div>
+
+    <div ng-controller="cwfmPlaylistCtrl">
+        
     </div>
 </body>
 </html>

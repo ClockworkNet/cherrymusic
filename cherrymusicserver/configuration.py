@@ -208,6 +208,9 @@ def from_defaults():
     with c['server.ssl_private_key'] as ssl_private_key:
         ssl_private_key.value = 'certs/server.key'
 
+    with c['room.max_djs'] as max_djs:
+        max_djs.value = 5
+
     return c.to_configuration()
 
 
