@@ -714,17 +714,16 @@ everybody has to relogin now.''')
 
     """ Room handling """
     def room(self, room_name):
-        self.getBaseUrl(redirect_unencrypted=True)
+        url = self.getBaseUrl(redirect_unencrypted=True)
+        if not self.isAuthorized():
+            raise cherrypy.HTTPRedirect(url, 302)
         if debug:
             self.roompage = readRes('res/room.html')
-        if self.isAuthorized():
-            uid = self.getUserId()
-            room = self.ensure_room(room_name)
-            room.join(uid)
-            log.i("{0} joined room {1}".format(uid, room_name))
-            return self.roompage
-        else:
-            return self.loginpage
+        uid = self.getUserId()
+        room = self.ensure_room(room_name)
+        room.join(uid)
+        log.i("{0} joined room {1}".format(uid, room_name))
+        return self.roompage
     room.exposed = True
 
     def api_song(self, room):
@@ -767,8 +766,8 @@ everybody has to relogin now.''')
         info = {
             'name': r.name,
             'message': r.message,
-            'song': r.song.dict(),
-            'dj': r.current_dj.name if r.current_dj else None,
+            'song': r.song.dict() if r.song else None,
+            'dj': r.current_dj.dict() if r.current_dj else None,
             'members': [m.dict() for m in r.members],
         }
         return json.dumps(info)

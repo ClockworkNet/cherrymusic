@@ -1,25 +1,5 @@
 var PING = 1000;
 
-angular.module( 'cwfmFilters', [] )
-.filter( 'time', function( ) {
-    return function( input ) {
-        var pad      =  function( n ) { return n < 10 ? '0' + n : n; }
-        var time     =  parseInt( input );
-        var hours    =  Math.floor( time / 3600 );
-        var minutes  =  Math.floor( time / 60 ) - ( hours * 3600 );
-        var seconds  =  time - ( hours * 3600 ) - ( minutes * 60 );
-        var d        =  new Date( 0, 0, 0, hours, minutes, seconds );
-        if ( hours ) return pad( hours ) + ':' + pad( minutes ) + ':' + pad( seconds );
-        return  pad( minutes ) + ':' + pad( seconds );
-    };
-}).
-filter( 'checkmark', function( ) {
-    return function( input ) {
-        return input ? '\u2713' : '\u2718';
-    };
-});
-
-
 var roomApp  =  angular.module( 'cwfmRoomApp', [ 'cwfmFilters' ] );
 
 roomApp.controller( 'cwfmRoomCtrl', [ '$scope', '$http',
@@ -32,6 +12,12 @@ function cwfmRoomCtrl( $scope, $http ) {
 
     var databind  =  function( rsp ) {
         $scope.room  =  rsp;
+        $scope.room.members.sort( function( ma, mb ) {
+            if ( ma.dj && mb.dj ) return ma.dj - mb.dj;
+            if ( ma.dj ) return -1;
+            if ( mb.dj ) return 1;
+            return ma.joined - mb.joined;
+        } );
     };
 
     var api  =  function( action ) {
@@ -58,7 +44,17 @@ function cwfmRoomCtrl( $scope, $http ) {
         return end - now;
     };
 
-    $scope.dj  =  function( member ) {
+    $scope.not  =  function( func ) {
+        return function( item ) {
+            return ! func( item );
+        };
+    };
+
+    $scope.is_current_dj  =  function( member ) {
+        return member.uid == $scope.room.dj;
+    };
+
+    $scope.is_dj  =  function( member ) {
         return member.dj != null;
     };
 
