@@ -96,7 +96,7 @@ class RoomModel:
             next_index = 1
 
         try:
-            self.current_dj = next(user for user in djs if djs.dj == next_index)
+            self.current_dj = next(m for m in djs if m.dj == next_index)
         except StopIteration:
             self.current_dj = None
 
