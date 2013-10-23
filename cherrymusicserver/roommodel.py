@@ -18,6 +18,7 @@ class RoomSong():
         if not path:
             self.path    = None
             self.abspath = None
+            self.relpath = path
             self.info    = metainfo.MockTag()
         else:
             basedir = cherry.config['media.basedir']
@@ -26,7 +27,8 @@ class RoomSong():
                 path = path[7:]
             elif path.startswith('serve/'):
                 path = path[6:]
-            self.path = path
+            self.path = '/serve/' + path
+            self.relpath = path
             self.abspath = os.path.join(basedir, path)
             self.info = metainfo.getSongInfo(self.abspath)
 
@@ -41,6 +43,8 @@ class RoomSong():
 
     def dict(self):
         d = self.info.dict()
+        d['relpath'] = self.relpath
+        d['abspath'] = self.abspath
         d['path'] = self.path
         d['started'] = self.started
         return d
