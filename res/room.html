@@ -50,6 +50,8 @@
         <h1>Welcome to {{room.name}}</h1>
         <p>{{room.message}}</p>
 
+        <label><input type="checkbox" ng-model="muted" ng-click="toggle_muting()" /> Mute</label>
+
         <dl ng-if="room.song.length">
             <dt>Now Playing<dt>
             <dd>{{song_title()}}</dd>

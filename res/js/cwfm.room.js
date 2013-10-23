@@ -4,6 +4,18 @@ cwfm.room  =  { ping: 1000 };
 
 cwfm.room.ctrl  =  function( $scope, $http ) {
 
+    var on_ready  =  function( ) {
+        this.heartbeat  =  setInterval( function( ) { api( 'roominfo' ) }, cwfm.room.ping );
+        api( 'roominfo' );
+    };
+
+    var on_canplay  =  function( e ) {
+        if ( ! this.room || ! this.room.song || this.muted ) return;
+        var song  =  this.room.song;
+        var time  =  ( Date.now() / 1000 ) - song.started;
+        this.player( 'play', time );
+    };
+
     var init  =  function( ) {
 
         // Wrapper for calling jPlayer functions
@@ -11,37 +23,38 @@ cwfm.room.ctrl  =  function( $scope, $http ) {
             $.fn.jPlayer.apply( $( '#jplayer' ), arguments );
         }
 
-        var on_ready  =  function( ) {
-            $scope.heartbeat  =  setInterval( function( ) { api( 'roominfo' ) }, cwfm.room.ping );
-            $scope.api( 'roominfo' );
-        };
-
-        var on_canplay  =  function( e ) {
-            if ( ! this.room || ! this.room.song ) return;
-            var song  =  this.room.song;
-            var time  =  ( Date.now() / 1000 ) - song.started;
-            this.player( 'play', time );
-        };
-
         $scope.player({
-            ready: on_ready
+            ready: $.proxy( on_ready, $scope )
             , canplay: $.proxy( on_canplay, $scope )
         });
     };
-
 
     var get_filetype  =  function( path ) {
         return path.substr( path.lastIndexOf( '.' ) + 1 );
     };
 
 
+    var stop_song  =  function( ) {
+        $scope.player( 'stop' );
+    };
+
+
+    var play_song  =  function( ) {
+        var path  =  $scope.room && $scope.room.song ? $scope.room.song.path : null;
+        if ( ! path ) return;
+        var type  =  get_filetype( path );
+        var data  =  {};
+        data[ type ]  =  path;
+        $scope.player( 'setMedia', data );
+    };
+
+
     var song_changed  =  function( old_song, new_song ) {
-        if ( new_song.path ) {
-            var type  =  get_filetype( new_song.path );
-            var data  =  {};
-            data[ type ]  =  new_song.path;
-            $scope.player( 'setMedia', data );
+        // Load 'em up!
+        if ( ! $scope.muted ) {
+            play_song( );
         }
+        // If we're muted, don't bother loading the next song yet.
         else {
             $scope.player( 'clearMedia' );
         }
@@ -95,6 +108,15 @@ cwfm.room.ctrl  =  function( $scope, $http ) {
         var now  =  Date.now() / 1000.0;
         var end  =  song.started + song.length;
         return end - now;
+    };
+
+    $scope.toggle_muting  =  function( ) {
+        if ( $scope.muted ) {
+            stop_song( );
+        }
+        else {
+            play_song( );
+        }
     };
 
     $scope.not  =  function( func ) {
