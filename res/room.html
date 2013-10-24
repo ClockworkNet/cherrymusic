@@ -42,11 +42,22 @@
 <script src="/res/js/cwfm.playlist.js"></script>
 <script src="/res/js/cwfm.app.js"></script>
 
+<style>
+#cwfmRoomCtrl { 
+    width: 30%; 
+    float: left;
+}
+#cwfmPlaylistCtrl {
+    width: 40%;
+    float: left;
+}
+</style>
+
 <title>Room</title>
 </head>
 <body>
     <div id="jplayer" class="jp-jplayer"></div>
-    <div ng-controller="cwfmRoomCtrl">
+    <div id="cwfmRoomCtrl" ng-controller="cwfmRoomCtrl">
         <h1>Welcome to {{room.name}}</h1>
         <p>{{room.message}}</p>
 
@@ -81,14 +92,24 @@
         <ul>
             <li><a ng-click="api('dj')"             href="#dj">DJ</a></li>
             <li><a ng-click="api('undj')"           href="#undj">Stop DJing</a></li>
-            <li><a ng-click="api('selectplaylist')" href="#selectplaylist">Select Playlist <input type="text"  value="1" name="plid" /></a></li>
+            <li><a ng-click="api('skipsong')"       href="#skip">Skip Song</a></li>
             <li><a ng-click="api('roominfo')"       href="#roominfo">Room info</a></li>
             <li><a ng-click="api('leave')"          href="#leave">Leave Room</a></li>
         </ul>
     </div>
 
-    <div ng-controller="cwfmPlaylistCtrl">
-        
+    <div id="cwfmPlaylistCtrl" ng-controller="cwfmPlaylistCtrl">
+        <ul ng-if="playlists.length">
+            <li ng-repeat="playlist in playlists | filter:my:playlist">
+                <a ng-click="select(playlist)" href="#load">{{playlist.title}}</a>
+            </li>
+        </ul>
+        <input type="text" ng-model="query" />
+        <ul>
+            <li ng-repeat="song in songs">
+                {{song.label}}
+            </li>
+        </ul>
     </div>
 </body>
 </html>

@@ -1,3 +1,4 @@
 angular.module( 'cwfmRoomApp', [ 'cwfmFilters' ] )
-    .controller( 'cwfmRoomCtrl', [ '$scope', '$http', cwfm.room.ctrl ] )
-    .controller( 'cwfmPlaylistCtrl', [ '$scope', '$http', cwfm.playlist.ctrl ] );
+    .service( '$roomservice', cwfm.room.service )
+    .controller( 'cwfmRoomCtrl', [ '$scope', '$http', '$roomservice', cwfm.room.ctrl ] )
+    .controller( 'cwfmPlaylistCtrl', [ '$scope', '$http', '$roomservice', cwfm.playlist.ctrl ] );

@@ -115,6 +115,7 @@ class RoomModel:
         try:
             return next(user for user in self.members if user and user.uid == uid)
         except StopIteration:
+            log.d("Member {0} was not found in room {1}".format(uid, self.name))
             return None
 
 
@@ -169,12 +170,12 @@ class RoomModel:
 
 
     def select_playlist(self, uid, plid=None):
-        user = self.find_member(uid)
-        if not user: return
+        member = self.find_member(uid)
+        if not member: return
         if plid:
-            user.playlist = int(plid)
+            member.playlist = int(plid)
         else: 
-            user.playlist = self.playlist.getFirstPlaylistId(uid)
+            member.playlist = self.playlist.getFirstPlaylistId(uid)
 
     """ 
         The room's current song is treated as a property so that
@@ -201,16 +202,16 @@ class RoomModel:
             log.d("No DJs; No songs")
             return
         if not dj.playlist:
-            self.undj(dj.uid)
-            self.next_song()
             log.d("DJ {0} didn't have a playlist selected. Next.".format(dj.name))
-            return
-        pl = self.playlistdb.loadPlaylist(dj.playlist, dj.uid)
-        if not pl:
             self.undj(dj.uid)
             self.next_song()
-            log.d("DJ {0} didn't have any playlist. Next.".format(dj.name))
             return
+        pl = self.playlistdb.loadPlaylist(dj.playlist, dj.uid, limit=1)
+        if not pl:
+            log.d("DJ {0} didn't have any playlist. Next.".format(dj.name))
+            self.undj(dj.uid)
+            self.next_song()
+            return
+        log.d("New song from playlist {0}: `{1}`".format(dj.playlist, pl[0].path))
         self.roomsong = RoomSong(pl[0].path)
         self.playlistdb.popPlaylist(dj.playlist)
-        log.d("New song: {0}.".format(pl[0].path))

@@ -127,6 +127,7 @@ class HTTPHandler(object):
             'rooms': self.api_rooms,
             'roominfo': self.api_roominfo,
             'dj': self.api_dj,
+            'skipsong': self.api_skipsong,
             'undj': self.api_undj,
             'song': self.api_song,
             'leave': self.api_leave,
@@ -556,10 +557,9 @@ everybody has to relogin now.''')
             raise cherrypy.HTTPError(400, res)
 
     def api_loadplaylist(self, value):
-        return self.jsonrenderer.render(self.playlistdb.loadPlaylist(
-                                        playlistid=value,
-                                        userid=self.getUserId()
-                                        ))
+        pl = self.playlistdb.loadPlaylist(value, self.getUserId())
+        if not pl: return None
+        return self.jsonrenderer.render(pl)
 
     def api_generaterandomplaylist(self, value):
         files = self.model.randomMusicEntries(50)
@@ -726,6 +726,12 @@ everybody has to relogin now.''')
         return self.roompage
     room.exposed = True
 
+    def api_selectplaylist(self, values):
+        (room, plid) = values
+        if not room in self.rooms: return
+        self.rooms[room].select_playlist(self.getUserId(), plid)
+        return self.api_loadplaylist(plid)
+
     def api_song(self, room):
         if room in self.rooms:
             return json.dumps(self.rooms[room].song.dict())
@@ -744,6 +750,15 @@ everybody has to relogin now.''')
         self.rooms[room].dj(uid)
         return self.api_roominfo(room)
 
+    def api_skipsong(self, room):
+        if room not in self.rooms: return
+        r = self.rooms[room]
+        if not r.current_dj: return
+        uid = self.getUserId()
+        if cherrypy.session['admin'] or r.current_dj.uid == uid:
+            r.next_song()
+        return self.api_roominfo(room)
+
     def api_leave(self, room):
         if room not in self.rooms: return
         uid = self.getUserId()
@@ -753,12 +768,6 @@ everybody has to relogin now.''')
 
     def api_rooms(self, value):
         return json.dumps(self.rooms.keys())
-
-    def api_selectplaylist(self, values):
-        (room, plid) = values
-        if not room in self.rooms: return
-        self.rooms[room].select_playlist(self.getUserId(), plid)
-        return self.api_roominfo(room)
 
     def api_roominfo(self, room):
         if room not in self.rooms: return

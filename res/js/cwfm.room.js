@@ -2,21 +2,60 @@ if ( typeof cwfm == 'undefined' ) var cwfm  =  {};
 
 cwfm.room  =  { ping: 1000 };
 
-cwfm.room.ctrl  =  function( $scope, $http ) {
+cwfm.room.service  =  function( ) {
+    var handlers  =  {};
+    return {
+        on: function ( key, func, ctx ) {
+            if ( ! handlers[ key ] ) handlers[ key ]  =  [];
+            var handler  =  ( ctx ) ? function( ) { func.call( ctx, arguments ); } : func;
+            handlers[ key ].push( func ); 
+        }
+        , trigger: function ( key, args ) {
+            console.info('room event triggered', key, args);
+            if ( ! handlers[ key ] ) return;
+            angular.forEach( handlers[ key ], function( func ) {
+                func.apply( args );
+            } );
+        }
+        , get_name: function( ) {
+            var start  =  location.pathname.indexOf( '/room/' );
+            if ( start < 0 ) return '';
+            return location.pathname.substr( start + 6 );
+        }
+    }
+};
 
-    var on_ready  =  function( ) {
-        this.heartbeat  =  setInterval( function( ) { api( 'roominfo' ) }, cwfm.room.ping );
-        api( 'roominfo' );
-    };
-
-    var on_canplay  =  function( e ) {
-        if ( ! this.room || ! this.room.song || this.muted ) return;
-        var song  =  this.room.song;
-        var time  =  ( Date.now() / 1000 ) - song.started;
-        this.player( 'play', time );
-    };
+cwfm.room.ctrl  =  function( $scope, $http, $roomservice ) {
 
     var init  =  function( ) {
+
+        $scope.room      =  {};
+        $scope.roomname  =  $roomservice.get_name( );
+
+        var on_songchange  =  function( old_song, new_song ) {
+            // Load 'em up!
+            if ( ! this.muted ) {
+                play_song( );
+            }
+            // If we're muted, don't bother loading the next song yet.
+            else {
+                this.player( 'clearMedia' );
+            }
+        };
+
+        // Uses "this" as $scope, called when the jPlayer is ready to go.
+        var on_ready  =  function( ) {
+            this.heartbeat  =  setInterval( function( ) { api( 'roominfo' ) }, cwfm.room.ping );
+            api( 'roominfo' );
+        };
+
+        // Uses "this" as $scope, called when the file can start playing
+        var on_canplay  =  function( e ) {
+            if ( ! this.room || ! this.room.song || this.muted ) return;
+            var song  =  this.room.song;
+            var time  =  ( Date.now() / 1000 ) - song.started;
+            this.player( 'play', time );
+        };
 
         // Wrapper for calling jPlayer functions
         $scope.player  =  function( ) {
@@ -27,10 +66,28 @@ cwfm.room.ctrl  =  function( $scope, $http ) {
             ready: $.proxy( on_ready, $scope )
             , canplay: $.proxy( on_canplay, $scope )
         });
+
+        $roomservice.on( 'songchange', on_songchange, $scope );
     };
 
     var get_filetype  =  function( path ) {
-        return path.substr( path.lastIndexOf( '.' ) + 1 );
+        var ext  =  path.substr( path.lastIndexOf( '.' ) + 1 );
+        switch ( ext ) {
+            case 'mp3':
+                return 'mp3';
+            case 'mp4':
+            case 'aac':
+                return 'mp4';
+            case 'ogg':
+                return 'oga';
+            case 'fla':
+            case 'flv':
+                return 'fla';
+            case 'wav':
+                return 'wav';
+            default:
+                return 0
+        }
     };
 
 
@@ -48,18 +105,6 @@ cwfm.room.ctrl  =  function( $scope, $http ) {
         $scope.player( 'setMedia', data );
     };
 
-
-    var song_changed  =  function( old_song, new_song ) {
-        // Load 'em up!
-        if ( ! $scope.muted ) {
-            play_song( );
-        }
-        // If we're muted, don't bother loading the next song yet.
-        else {
-            $scope.player( 'clearMedia' );
-        }
-    };
-
     var databind  =  function( rsp ) {
         if ( rsp.members ) {
             rsp.members.sort( function( ma, mb ) {
@@ -75,17 +120,14 @@ cwfm.room.ctrl  =  function( $scope, $http ) {
         $scope.room  =  rsp;
 
         if ( old_song.path != new_song.path ) {
-            song_changed( old_song, new_song );
+            $roomservice.trigger( 'songchange', [ old_song, new_song ] );
         }
     };
 
     var api  =  function( action ) {
-        var apiurl  = '/api/' + action + '/' + $scope.room.name;
+        var apiurl  = '/api/' + action + '/' + $scope.roomname;
         $http.get( apiurl ).success( databind );
     };
-
-    $scope.room  =  {};
-    $scope.room.name  =  location.pathname.substr( location.pathname.indexOf( '/room/' ) + 6 );
 
     $scope.song_title  =  function( ) {
         var song  =  $scope.room.song;

@@ -85,15 +85,16 @@ class PlaylistDB:
         else:
             return "This playlist name already exists! Nothing saved."
 
-    def loadPlaylist(self, playlistid, userid):
+    def loadPlaylist(self, playlistid, userid, limit=None):
         cursor = self.conn.cursor()
         cursor.execute("""SELECT rowid FROM playlists WHERE
             rowid = ? AND (public = 1 OR userid = ?) LIMIT 0,1""",
             (playlistid, userid));
         result = cursor.fetchone()
         if result:
-            cursor.execute("""SELECT title, url FROM tracks WHERE
-                playlistid = ? ORDER BY track ASC""", (playlistid,))
+            sql = "SELECT title, url FROM tracks WHERE playlistid = ? ORDER BY track ASC"
+            if limit: sql += " LIMIT 0," + str(limit)
+            cursor.execute(sql, (playlistid,))
             alltracks = cursor.fetchall()
             apiplaylist = []
             for track in alltracks:
