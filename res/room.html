@@ -100,14 +100,21 @@
 
     <div id="cwfmPlaylistCtrl" ng-controller="cwfmPlaylistCtrl">
         <ul ng-if="playlists.length">
-            <li ng-repeat="playlist in playlists | filter:my:playlist">
+            <li ng-repeat="playlist in playlists">
                 <a ng-click="select(playlist)" href="#load">{{playlist.title}}</a>
             </li>
         </ul>
-        <input type="text" ng-model="query" />
+        <h3>Playlist Songs</h3>
         <ul>
             <li ng-repeat="song in songs">
                 {{song.label}}
+            </li>
+        </ul>
+        <h3>Find Songs</h3>
+        <input type="text" ng-model="query" />
+        <ul>
+            <li ng-repeat="song in results">
+                <a ng-click="addsong(song)" href="#add">{{song.label}}</a>
             </li>
         </ul>
     </div>

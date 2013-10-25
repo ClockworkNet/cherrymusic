@@ -93,6 +93,7 @@ class HTTPHandler(object):
             'search': self.api_search,
             'rememberplaylist': self.api_rememberplaylist,
             'saveplaylist': self.api_saveplaylist,
+            'addplaylistsong' : self.api_addplaylistsong,
             'loadplaylist': self.api_loadplaylist,
             'generaterandomplaylist': self.api_generaterandomplaylist,
             'deleteplaylist': self.api_deleteplaylist,
@@ -544,6 +545,14 @@ everybody has to relogin now.''')
             return res
         else:
             raise cherrypy.HTTPError(400, res)
+
+    def api_addplaylistsong(self, value):
+        pl = json.loads(value)
+        songs = self.playlistdb.addSong(
+                self.getUserId(), 
+                pl['plid'], 
+                pl['song'])
+        return self.jsonrenderer.render(songs)
 
     def api_deleteplaylist(self, value):
         res = self.playlistdb.deletePlaylist(value,

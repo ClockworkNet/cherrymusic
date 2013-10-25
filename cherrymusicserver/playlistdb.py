@@ -58,6 +58,20 @@ class PlaylistDB:
         self.conn.commit()
         return 'success'
 
+    def addSong(self, uid, plid, song):
+        cursor = self.conn.cursor()
+        cursor.execute("""SELECT rowid FROM playlists WHERE
+            rowid = ? AND (public = 1 OR userid = ?) LIMIT 0,1""",
+            (plid, uid));
+        playlist = cursor.fetchone()
+        if not playlist: return []
+        """ Shift everything down by 1 to make room """
+        cursor.execute("UPDATE tracks SET track = track + 1 WHERE playlistid = ?", (plid,))
+        """ Add the new song to the top """
+        cursor.execute("""INSERT INTO tracks (playlistid, track, url, title)
+            VALUES (?,?,?,?)""", (plid, 0, song['urlpath'], song['label']))
+        return self.loadPlaylist(plid, uid)
+
     def savePlaylist(self, userid, public, playlist, playlisttitle, overwrite=False):
         if not len(playlist):
             return 'I will not create an empty playlist. sorry.'
@@ -77,7 +91,7 @@ class PlaylistDB:
             for entry in zip(range(len(playlist)), playlist):
                 track = entry[0]
                 song = entry[1]
-                numberedplaylist.append((playlistid, track, song['url'], song['title']))
+                numberedplaylist.append((playlistid, track, song['path'], song['title']))
             cursor.executemany("""INSERT INTO tracks (playlistid, track, url, title)
                 VALUES (?,?,?,?)""", numberedplaylist)
             self.conn.commit()
