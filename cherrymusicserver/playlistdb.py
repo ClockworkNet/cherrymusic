@@ -72,6 +72,21 @@ class PlaylistDB:
             VALUES (?,?,?,?)""", (plid, 0, song['urlpath'], song['label']))
         return self.loadPlaylist(plid, uid)
 
+    def removeSong(self, uid, plid, song):
+        cursor = self.conn.cursor()
+        cursor.execute("""SELECT rowid FROM playlists WHERE
+            rowid = ? AND (public = 1 OR userid = ?) LIMIT 0,1""",
+            (plid, uid));
+        playlist = cursor.fetchone()
+        if not playlist: return []
+        """ Get rid of """
+        cursor.execute("""DELETE FROM tracks WHERE playlistid = ? AND track = ? AND url = ?""", 
+                (plid, song['track'], song['urlpath']))
+        """ Shift everything back by one now that there's room """
+        cursor.execute("UPDATE tracks SET track = track - 1 WHERE playlistid = ? AND track > ?", 
+                (plid, song['track']))
+        return self.loadPlaylist(plid, uid)
+
     def savePlaylist(self, userid, public, playlist, playlisttitle, overwrite=False):
         if not len(playlist):
             return 'I will not create an empty playlist. sorry.'

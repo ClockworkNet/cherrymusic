@@ -260,11 +260,12 @@ def strippath(path):
     return path
 
 class MusicEntry:
-    def __init__(self, path, compact=False, dir=False, repr=None):
+    def __init__(self, path, compact=False, dir=False, repr=None, track=None):
         self.path = path
         self.compact = compact
         self.dir = dir
         self.repr = repr
+        self.track = track
 
     def __repr__(self):
         return "<MusicEntry path:%s, dir:%s>" % (self.path, self.dir)

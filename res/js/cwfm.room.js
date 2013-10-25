@@ -113,6 +113,12 @@ cwfm.room.ctrl  =  function( $scope, $http, $roomservice ) {
                 if ( mb.dj ) return 1;
                 return ma.joined - mb.joined;
             } );
+            angular.forEach( rsp.members, function( m ) {
+                if ( m.active ) {
+                    $scope.me  =  m;
+                    return;
+                }
+            });
         }
         var old_song =  $scope.room && $scope.room.song ? $scope.room.song : { path: null };
         var new_song =  rsp && rsp.song ? rsp.song : { path: null };

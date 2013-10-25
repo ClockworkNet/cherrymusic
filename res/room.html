@@ -90,33 +90,46 @@
 
         <h2>Actions</h2>
         <ul>
-            <li><a ng-click="api('dj')"             href="#dj">DJ</a></li>
-            <li><a ng-click="api('undj')"           href="#undj">Stop DJing</a></li>
-            <li><a ng-click="api('skipsong')"       href="#skip">Skip Song</a></li>
-            <li><a ng-click="api('roominfo')"       href="#roominfo">Room info</a></li>
-            <li><a ng-click="api('leave')"          href="#leave">Leave Room</a></li>
+            <li ng-hide="me.dj"><a ng-click="api('dj')" href="#dj">Start DJing</a></li>
+            <li ng-show="me.dj"><a ng-click="api('undj')" href="#undj">Stop DJing</a></li>
+            <li ng-show="me.isadmin || is_current_dj(me)"><a ng-click="api('skipsong')" href="#skip">Skip Song</a></li>
+            <li><a ng-click="api('leave')" href="#leave">Leave Room</a></li>
         </ul>
     </div>
 
     <div id="cwfmPlaylistCtrl" ng-controller="cwfmPlaylistCtrl">
-        <ul ng-if="playlists.length">
-            <li ng-repeat="playlist in playlists">
-                <a ng-click="select(playlist)" href="#load">{{playlist.title}}</a>
-            </li>
-        </ul>
-        <h3>Playlist Songs</h3>
-        <ul>
-            <li ng-repeat="song in songs">
-                {{song.label}}
-            </li>
-        </ul>
-        <h3>Find Songs</h3>
-        <input type="text" ng-model="query" />
-        <ul>
-            <li ng-repeat="song in results">
-                <a ng-click="addsong(song)" href="#add">{{song.label}}</a>
-            </li>
-        </ul>
+        <div ng-show="playlists.length">
+            <h3>Available Playlists</h3>
+            <label>
+                Find a playlist: 
+                <input type="text" ng-hide="playlists.length < 10" ng-model="playlistquery" />
+            </label>
+            <ul ng-show="playlists.length">
+                <li ng-repeat="playlist in playlists | filter:playlistquery">
+                    <a ng-click="select(playlist)" href="#load">{{playlist.title}}</a>
+                </li>
+            </ul>
+        </div>
+        <div ng-show="songs">
+            <h3>{{selected.title}} Songs</h3>
+            <ul>
+                <li ng-repeat="song in songs">
+                    <a ng-click="removesong(song)" href="#remove">[x]</a> {{song.label}}
+                </li>
+            </ul>
+        </div>
+        <div ng-show="selected">
+        <h3>Add Songs to {{selected.title}}</h3>
+            <label>
+                Find a song: 
+                <input type="text" ng-model="query" />
+            </label>
+            <ul>
+                <li ng-repeat="song in results">
+                    <a ng-click="addsong(song)" href="#add">{{song.label}}</a>
+                </li>
+            </ul>
+        </div>
     </div>
 </body>
 </html>

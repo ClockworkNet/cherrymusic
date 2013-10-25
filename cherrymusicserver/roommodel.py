@@ -44,7 +44,6 @@ class RoomSong():
     def dict(self):
         d = self.info.dict()
         d['relpath'] = self.relpath
-        d['abspath'] = self.abspath
         d['path'] = self.path
         d['started'] = self.started
         return d
@@ -59,7 +58,7 @@ class RoomMember():
         self.dj = None
         self.joined = time.time()
 
-    def dict(self):
+    def dict(self, active=None):
         return {
             'uid': self.uid,
             'name': self.name,
@@ -67,6 +66,7 @@ class RoomMember():
             'playlist': self.playlist,
             'dj': self.dj,
             'joined': self.joined,
+            'active': self.uid == active,
         }
 
 @service.user(cache='filecache', 

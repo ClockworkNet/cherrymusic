@@ -94,6 +94,7 @@ class HTTPHandler(object):
             'rememberplaylist': self.api_rememberplaylist,
             'saveplaylist': self.api_saveplaylist,
             'addplaylistsong' : self.api_addplaylistsong,
+            'removeplaylistsong' : self.api_removeplaylistsong,
             'loadplaylist': self.api_loadplaylist,
             'generaterandomplaylist': self.api_generaterandomplaylist,
             'deleteplaylist': self.api_deleteplaylist,
@@ -554,6 +555,14 @@ everybody has to relogin now.''')
                 pl['song'])
         return self.jsonrenderer.render(songs)
 
+    def api_removeplaylistsong(self, value):
+        pl = json.loads(value)
+        songs = self.playlistdb.removeSong(
+                self.getUserId(), 
+                pl['plid'], 
+                pl['song'])
+        return self.jsonrenderer.render(songs)
+
     def api_deleteplaylist(self, value):
         res = self.playlistdb.deletePlaylist(value,
                                              self.getUserId(),
@@ -781,12 +790,13 @@ everybody has to relogin now.''')
     def api_roominfo(self, room):
         if room not in self.rooms: return
         r = self.rooms[room]
+        uid = self.getUserId()
         info = {
             'name': r.name,
             'message': r.message,
             'song': r.song.dict() if r.song else None,
-            'dj': r.current_dj.dict() if r.current_dj else None,
-            'members': [m.dict() for m in r.members],
+            'dj': r.current_dj.dict(active=uid) if r.current_dj else None,
+            'members': [m.dict(active=uid) for m in r.members],
         }
         return json.dumps(info)
 

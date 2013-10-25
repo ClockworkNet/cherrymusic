@@ -21,24 +21,17 @@ cwfm.playlist.ctrl  =  function( $scope, $http, $roomservice ) {
         $scope.playlists  =  rsp;
     };
 
-    var on_selectplaylist  =  function( rsp ) {
-        console.info('selectplaylist returned', rsp);
-        $scope.songs  =  rsp;
-    };
-
     var on_loadplaylist  =  function( rsp ) {
         console.info('loadplaylist returned', rsp);
-        $scope.songs  =  rsp;
-    };
-
-    var on_addplaylistsong  =  function( rsp ) {
-        console.info('addplaylistsong returned', rsp);
+        angular.forEach( rsp, function( song, index ) {
+            song.track  =  index;
+        } );
         $scope.songs  =  rsp;
     };
 
     var on_songchange  =  function( old_song, new_song ) {
         if ( ! $scope.selected ) return;
-        api( 'loadplaylist', $scope.selected, on_loadplaylist )
+        api( 'loadplaylist', $scope.selected.plid, on_loadplaylist )
     };
 
     var init  =  function( ) {
@@ -92,8 +85,8 @@ cwfm.playlist.ctrl  =  function( $scope, $http, $roomservice ) {
     };
 
     $scope.select  =  function( pl ) {
-        $scope.selected = pl.plid;
-        api( 'selectplaylist', [ $scope.roomname, pl.plid ], on_selectplaylist );
+        $scope.selected = pl;
+        api( 'selectplaylist', [ $scope.roomname, pl.plid ], on_loadplaylist );
     };
 
     $scope.search  =  function( ) {
@@ -105,16 +98,28 @@ cwfm.playlist.ctrl  =  function( $scope, $http, $roomservice ) {
         api( 'search', [ terms ], on_search );
     };
 
-    $scope.addsong  =  function( song ) {
+    $scope.togglesong  =  function( song, inlist ) {
         if ( ! $scope.selected ) {
             console.warn( 'No playlist selected' );
             return;
         }
+
         var data  =  { 
-            plid   : $scope.selected
+            plid   : $scope.selected.plid
             , song : song
         };
-        api( 'addplaylistsong', data, on_addplaylistsong );
+
+        var action  =  inlist ? 'addplaylistsong' : 'removeplaylistsong';
+
+        api( action, data, on_loadplaylist );
+    };
+
+    $scope.addsong  =  function( song ) {
+        $scope.togglesong( song, true );
+    };
+
+    $scope.removesong  =  function( song ) {
+        $scope.togglesong( song, false );
     };
 
     init( );
