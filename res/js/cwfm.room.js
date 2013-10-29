@@ -174,7 +174,7 @@ cwfm.room.ctrl  =  function( $scope, $http, $roomservice ) {
     };
 
     $scope.is_current_dj  =  function( member ) {
-        return member.uid == $scope.room.dj;
+        return member && member.uid == $scope.room.dj;
     };
 
     $scope.is_dj  =  function( member ) {

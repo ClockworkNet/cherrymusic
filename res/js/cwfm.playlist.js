@@ -6,10 +6,19 @@ cwfm.playlist.ctrl  =  function( $scope, $http, $roomservice ) {
     var nothing  =  function( rsp ) { };
 
     // @todo
-    var on_saveplaylist  =  nothing;
     var on_generaterandomplaylist  =  nothing;
     var on_deleteplaylist  =  nothing;
     var on_changeplaylist  =  nothing;
+
+    var on_saveplaylist  =  function( rsp ) {
+        console.info('playlist saved', rsp);
+        if ( ! rsp ) {
+            return;
+        }
+        if ( ! $scope.selected || $scope.selected.plid != rsp.plid ) {
+            $scope.select( rsp );
+        }
+    };
 
     var on_search  =  function( rsp ) {
         console.info('search results', rsp);
@@ -120,6 +129,16 @@ cwfm.playlist.ctrl  =  function( $scope, $http, $roomservice ) {
 
     $scope.removesong  =  function( song ) {
         $scope.togglesong( song, false );
+    };
+
+    $scope.save  =  function( ) {
+        var data  =  {
+            public         : $scope.selected.public
+            , playlistname : $scope.selected.title
+            , playlistid   : $scope.selected.plid
+        };
+
+        api( 'saveplaylist', data, on_saveplaylist );
     };
 
     init( );

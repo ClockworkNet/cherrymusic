@@ -99,6 +99,13 @@
 
     <div id="cwfmPlaylistCtrl" ng-controller="cwfmPlaylistCtrl">
         <div ng-show="playlists.length">
+            <h3>Playlist</h3>
+            <form>
+                <label>Title: <input type="text" ng-model="selected.title" /></label>
+                <label><input type="checkbox" ng-model="selected.public" /> Public?</label>
+                <a ng-show="selected.plid" ng-click="save()" href="#save">Save</a>
+                <a ng-hide="selected.plid" ng-click="save()" href="#create">Create</a>
+            </form>
             <h3>Available Playlists</h3>
             <label>
                 Find a playlist: 

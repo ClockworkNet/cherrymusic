@@ -536,16 +536,12 @@ everybody has to relogin now.''')
 
     def api_saveplaylist(self, value):
         pl = json.loads(value)
-        res = self.playlistdb.savePlaylist(
+        rsp = self.playlistdb.savePlaylist(
             userid=self.getUserId(),
-            public=1 if pl['public'] else 0,
-            playlist=pl['playlist'],
+            public=pl['public'],
             playlisttitle=pl['playlistname'],
-            overwrite=pl.get('overwrite', False))
-        if res == "success":
-            return res
-        else:
-            raise cherrypy.HTTPError(400, res)
+            playlistid=pl.get('playlistid', None))
+        return json.dumps(rsp)
 
     def api_addplaylistsong(self, value):
         pl = json.loads(value)

@@ -70,6 +70,7 @@ class PlaylistDB:
         """ Add the new song to the top """
         cursor.execute("""INSERT INTO tracks (playlistid, track, url, title)
             VALUES (?,?,?,?)""", (plid, 0, song['urlpath'], song['label']))
+        self.conn.commit()
         return self.loadPlaylist(plid, uid)
 
     def removeSong(self, uid, plid, song):
@@ -85,34 +86,50 @@ class PlaylistDB:
         """ Shift everything back by one now that there's room """
         cursor.execute("UPDATE tracks SET track = track - 1 WHERE playlistid = ? AND track > ?", 
                 (plid, song['track']))
+        self.conn.commit()
         return self.loadPlaylist(plid, uid)
 
-    def savePlaylist(self, userid, public, playlist, playlisttitle, overwrite=False):
-        if not len(playlist):
-            return 'I will not create an empty playlist. sorry.'
-        duplicateplaylistid = self.conn.execute("""SELECT rowid FROM playlists
-            WHERE userid = ? AND title = ?""",(userid,playlisttitle)).fetchone()
-        if duplicateplaylistid and overwrite:
-            self.deletePlaylist(duplicateplaylistid[0], userid)
-            duplicateplaylistid = False
-        if not duplicateplaylistid:
-            cursor = self.conn.cursor()
+    def savePlaylist(self, userid, public, playlisttitle, playlistid=None):
+        cursor = self.conn.cursor()
+        # Verify that the user owns the playlist
+        if playlistid: 
+            cursor.execute("""SELECT rowid FROM playlists
+                WHERE userid = ? AND rowid = ?""", (userid, playlistid))
+            if not cursor.fetchone():
+                log.d("User {0} does not own {1}".format(userid, playlistid))
+                return None 
+
+        # Verify that the title is unique for the user
+        cursor.execute("""SELECT rowid FROM playlists
+            WHERE userid = ? AND title = ?""", (userid, playlisttitle))
+        titleid = cursor.fetchone()
+        if titleid:
+            log.d("User {0} already has playlist {1}".format(userid, playlisttitle))
+            playlistid = titleid[0]
+
+        public = bool(public)
+
+        if not playlistid:
             cursor.execute("""INSERT INTO playlists
                 (title, userid, public) VALUES (?,?,?)""",
-                (playlisttitle, userid, 1 if public else 0))
-            playlistid = cursor.lastrowid;
-            #put tracknumber to each track
-            numberedplaylist = []
-            for entry in zip(range(len(playlist)), playlist):
-                track = entry[0]
-                song = entry[1]
-                numberedplaylist.append((playlistid, track, song['path'], song['title']))
-            cursor.executemany("""INSERT INTO tracks (playlistid, track, url, title)
-                VALUES (?,?,?,?)""", numberedplaylist)
-            self.conn.commit()
-            return "success"
+                (playlisttitle, userid, public))
+            log.d("User {0} created new playlist {1}".format(userid, playlisttitle))
+            playlistid = cursor.lastrowid
         else:
-            return "This playlist name already exists! Nothing saved."
+            cursor.execute("""UPDATE playlists
+                SET title = ?, public = ? WHERE rowid = ? AND userid = ?""",
+                (playlisttitle, public, playlistid, userid))
+
+        self.conn.commit()
+        log.d("Done saving playlist {0}".format(playlisttitle))
+        return {
+            "plid"   : int(playlistid),
+            "title"  : playlisttitle,
+            "public" : public,
+            "userid" : userid,
+            "owner"  : 1,
+        }
+
 
     def loadPlaylist(self, playlistid, userid, limit=None):
         cursor = self.conn.cursor()
