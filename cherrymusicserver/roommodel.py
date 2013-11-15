@@ -13,7 +13,13 @@ except ImportError:
     from backport.urllib.parse import unquote
 
 class RoomSong():
+    UP   = 1
+    DOWN = -1
+
     def __init__(self, path=None, started=None):
+        self.upvotes = 0
+        self.downvotes = 0
+        self.voters = {} 
         self.started = started if started else time.time()
         if not path:
             self.path    = None
@@ -31,8 +37,34 @@ class RoomSong():
             self.relpath = path
             self.abspath = os.path.join(basedir, path)
             self.info = metainfo.getSongInfo(self.abspath)
-
         self.load_info_properties()
+
+    def upvote(self, member):
+        if member.uid in self.voters:
+            lastvote = self.voters[member.uid]
+            if lastvote == self.UP: 
+                return
+            else:
+                self.downvotes -= 1
+        self.voters[member.uid] = self.UP
+        self.upvotes += 1
+        member.points += 1
+
+    def downvote(self, member):
+        if member.uid in self.voters:
+            lastvote = self.voters[member.uid]
+            if lastvote == self.DOWN: 
+                return
+            else:
+                # undo a previous bump to the member
+                member.points -= 1
+                self.upvotes -= 1
+        self.voters[member.uid] = self.DOWN
+        self.downvotes += 1
+
+    @property
+    def score(self):
+        return self.upvotes - self.downvotes
 
     def load_info_properties(self):
         self.artist = self.info.artist
@@ -46,23 +78,30 @@ class RoomSong():
         d['relpath'] = self.relpath
         d['path'] = self.path
         d['started'] = self.started
+        d['upvotes'] = self.upvotes
+        d['downvotes'] = self.downvotes
+        d['score'] = self.score
         return d
 
 
 class RoomMember():
     def __init__(self, user):
-        self.uid = user.uid
-        self.name = user.name
-        self.isadmin = user.isadmin
+        self.uid = user.rowid
+        self.user = user
         self.playlist = None
         self.dj = None
+        self.points = user.points
         self.joined = time.time()
 
     def dict(self, active=None):
         return {
-            'uid': self.uid,
-            'name': self.name,
-            'isadmin': self.isadmin,
+            'uid': self.user.rowid,
+            'name': self.user.username,
+            'isadmin': self.user.isadmin,
+            'realname': self.user.realname,
+            'avatar_url': self.user.avatar_url,
+            'public_url': self.user.public_url,
+            'points': self.points,
             'playlist': self.playlist,
             'dj': self.dj,
             'joined': self.joined,
@@ -117,6 +156,23 @@ class RoomModel:
         except StopIteration:
             log.d("Member {0} was not found in room {1}".format(uid, self.name))
             return None
+
+    def can_vote(self, uid):
+        member = self.find_member(uid)
+        if not member: return False
+        if not self.current_dj: return False
+        if self.current_dj.uid == uid: return False
+        return True
+
+
+    def upvote(self, uid):
+        if not self.can_vote(uid): return
+        self.roomsong.upvote(member)
+
+
+    def downvote(self, uid):
+        if not self.can_vote(uid): return
+        self.roomsong.downvote(member)
 
 
     def join(self, uid):
@@ -194,7 +250,15 @@ class RoomModel:
         return self.roomsong
 
 
+    def save_dj_points(self):
+        dj = self.current_dj
+        if not dj or dj.points == dj.user.points:
+            return
+        self.userdb.savePoints(dj.uid, dj.points)
+
+
     def next_song(self):
+        self.save_dj_points()
         self.next_dj()
         dj = self.current_dj
         if not dj: 
