@@ -121,20 +121,18 @@
         </div>
 	    <div ng-show="selected" class="songlist_wrap">
 		    <div class="add_song_wrap">
-			    <label for="add_song" id="add_song_label">Add a Song</label><input type="text" id="add_song" ng-model="query" placeholder="Add a Song" /><a href="#" ng-click="closesongsearch()">(X)</a>
+			    <label for="add_song" id="add_song_label">Add a Song</label><input type="text" id="add_song" ng-model="query" placeholder="Add a Song" /><a href="#" ng-show="query" ng-click="closesongsearch()">(X)</a>
 		    </div>
 
-		    <ul class="songs_list">
-			    <li ng-repeat="song in results">
-				    <a ng-click="addsong(song)" href="#add" class="songs_item" ng-class-odd="'odd'" ng-class-even="'even'" ng-class="{'last':$last}">{{song.label}}</a>
+		    <ul ng-show="results.length" id="song_results_list" class="songs_list">
+			    <li ng-repeat="song in results" class="songs_item" ng-class-odd="'odd'" ng-class-even="'even'" ng-class="{'last':$last}">
+				    <a ng-click="addsong(song)" href="#add">{{song.label}}</a>
 			    </li>
 		    </ul>
 	    </div>
-        <div ng-show="songs">
-            <ul id="songlist_list">
-                <li ng-repeat="song in songs">
-                    <a ng-click="removesong(song)" href="#remove">[x]</a> {{song.label}}
-                </li>
+        <div ng-show="songs" id="myqueue_wrap">
+            <ul id="my_queue" class="songs_list">
+                <li ng-repeat="song in songs"  class="songs_item" ng-class-odd="'odd'" ng-class-even="'even'" ng-class="{'last':$last}">{{song.label}}<a ng-click="removesong(song)" href="#remove" class="remove">[x]</a></li>
             </ul>
         </div>
     </div>

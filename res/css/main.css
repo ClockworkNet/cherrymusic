@@ -208,6 +208,10 @@ h1 {
 /* Playlist dropdown */
 .playlist_select_wrap {
 	background: #bfb8b5;
+	/* position: absolute; */
+	z-index: 75;
+	width: 100%;
+	/* top: 0; */
 }
 #playlist_current {
 	padding: 0.3em 0.5em;
@@ -251,25 +255,35 @@ h1 {
 /* Add to songs */
 .songlist_wrap {
 	background: #e7e8c3;
+	width: 100%;
+	max-height: 600px;
+	overflow-y: scroll;
+	overflow-x: hidden;
 }
 .add_song_wrap {
 	padding:  0.3em 0.5em;
 }
 .songs_list {
+	overflow-y: scroll;
 	padding: 0;
 	list-style-type: none;
 	border-top: 1px solid #999;
 	border-bottom: 1px solid #999;
-	overflow-y: scroll;
-	max-height: 300px;
+	height: 90%;
 	margin: 0;
 }
 .songs_item {
 	display: block;
 	border-bottom: 1px solid #C5C5C5;
-	padding:  0.3em 0.5em;
+}
+.songs_item > a {
+	display: block;
+	padding: 0.3em 0.5em;
 	text-decoration: none;
 	color: #333;
+}
+#my_queue > .songs_item {
+	padding: 0.3em 0.5em;
 }
 .songs_item.even {
 	background: #E6E6E6;
@@ -287,8 +301,17 @@ h1 {
 #add_song_label {
 	display: none;
 }
-
-
+#song_results_list {
+    overflow: hidden;
+    margin: 0;
+}
+#myqueue_wrap {
+	width: 100%;
+	height: 100%;
+}
+.remove {
+	float:right;
+}
 
 /* ==========================================================================
    Helper classes
