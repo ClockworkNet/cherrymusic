@@ -4,17 +4,17 @@
 <link rel="icon" href="/res/favicon32.png" type="image/png"> <!-- relative path so cherrymusic can run in subdir (#344) -->
 <meta content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' name='viewport' />
 
-<!-- <link href="/res/jplayer-theme/jplayer.css?nocache" rel="stylesheet" type="text/css" />-->
+<link href="/res/jplayer-theme/jplayer.css?nocache" rel="stylesheet" type="text/css" />
 <!-- <link href="/res/layout.css?nocache" rel="stylesheet" type="text/css" /> -->
 <!-- <link href="/res/bootstrap-layout.css?nocache" rel="stylesheet" type="text/css" /> -->
 
 <!-- <link media="only screen and (max-device-width: 480px) and (min-device-width: 320px)" href="/res/mobilelayout.css?nocache" type="text/css" rel="stylesheet" />  -->
 <!-- <link href="api/customcss.css?nocache" rel="stylesheet" type="text/css" /> -->
-<!-- <script type="text/javascript" src="/res/js/jquery-1.8.3.min.js"></script> -->
-<!-- <script type="text/javascript" src="/res/js/json2.min.js"></script> -->
-<!-- <script type="text/javascript" src="/res/js/jquery.jplayer.min.js"></script> -->
-<!-- <script type="text/javascript" src="/res/js/jplayer.playlist.js"></script> -->
-<!-- <script type="text/javascript" src="/res/js/jquery.jplayer.inspector.js"></script> -->
+<script type="text/javascript" src="/res/js/jquery-1.8.3.min.js"></script>
+<script type="text/javascript" src="/res/js/json2.min.js"></script>
+<script type="text/javascript" src="/res/js/jquery.jplayer.min.js"></script>
+<script type="text/javascript" src="/res/js/jplayer.playlist.js"></script>
+<script type="text/javascript" src="/res/js/jquery.jplayer.inspector.js"></script>
 <!-- <script type="text/javascript" src="/res/js/mustache-0.7.0.js"></script> -->
 <!-- <script type="text/javascript" src="/res/js/jquery-color.js"></script> -->
 <!-- ui sortable -->
@@ -39,13 +39,29 @@
 <script src="/res/js/angular.min.js"></script>
 <script src="/res/js/cwfm.filters.js"></script>
 <script src="/res/js/cwfm.room.js"></script>
+<script src="/res/js/cwfm.playlist.js"></script>
+<script src="/res/js/cwfm.app.js"></script>
+
+<style>
+#cwfmRoomCtrl { 
+    width: 30%; 
+    float: left;
+}
+#cwfmPlaylistCtrl {
+    width: 40%;
+    float: left;
+}
+</style>
 
 <title>Room</title>
 </head>
-<body ng-controller="cwfmRoomCtrl">
-    <div>
+<body>
+    <div id="jplayer" class="jp-jplayer"></div>
+    <div id="cwfmRoomCtrl" ng-controller="cwfmRoomCtrl">
         <h1>Welcome to {{room.name}}</h1>
         <p>{{room.message}}</p>
+
+        <label><input type="checkbox" ng-model="muted" ng-click="toggle_muting()" /> Mute</label>
 
         <dl ng-if="room.song.length">
             <dt>Now Playing<dt>
@@ -74,13 +90,53 @@
 
         <h2>Actions</h2>
         <ul>
-            <li><a ng-click="api('dj')"             href="#dj">DJ</a></li>
-            <li><a ng-click="api('undj')"           href="#undj">Stop DJing</a></li>
-            <li><a ng-click="api('song')"           href="#song">Song info</a></li>
-            <li><a ng-click="api('selectplaylist')" href="#selectplaylist">Select Playlist <input type="text"  value="1" name="plid" /></a></li>
-            <li><a ng-click="api('roominfo')"       href="#roominfo">Room info</a></li>
-            <li><a ng-click="api('leave')"          href="#leave">Leave Room</a></li>
+            <li ng-hide="me.dj"><a ng-click="api('dj')" href="#dj">Start DJing</a></li>
+            <li ng-show="me.dj"><a ng-click="api('undj')" href="#undj">Stop DJing</a></li>
+            <li ng-show="me.isadmin || is_current_dj(me)"><a ng-click="api('skipsong')" href="#skip">Skip Song</a></li>
+            <li><a ng-click="api('leave')" href="#leave">Leave Room</a></li>
         </ul>
+    </div>
+
+    <div id="cwfmPlaylistCtrl" ng-controller="cwfmPlaylistCtrl">
+        <div ng-show="playlists.length">
+            <h3>Playlist</h3>
+            <form>
+                <label>Title: <input type="text" ng-model="selected.title" /></label>
+                <label><input type="checkbox" ng-model="selected.public" /> Public?</label>
+                <a ng-show="selected.plid" ng-click="save()" href="#save">Save</a>
+                <a ng-hide="selected.plid" ng-click="save()" href="#create">Create</a>
+            </form>
+            <h3>Available Playlists</h3>
+            <label>
+                Find a playlist: 
+                <input type="text" ng-hide="playlists.length < 10" ng-model="playlistquery" />
+            </label>
+            <ul ng-show="playlists.length">
+                <li ng-repeat="playlist in playlists | filter:playlistquery">
+                    <a ng-click="select(playlist)" href="#load">{{playlist.title}}</a>
+                </li>
+            </ul>
+        </div>
+        <div ng-show="songs">
+            <h3>{{selected.title}} Songs</h3>
+            <ul>
+                <li ng-repeat="song in songs">
+                    <a ng-click="removesong(song)" href="#remove">[x]</a> {{song.label}}
+                </li>
+            </ul>
+        </div>
+        <div ng-show="selected">
+        <h3>Add Songs to {{selected.title}}</h3>
+            <label>
+                Find a song: 
+                <input type="text" ng-model="query" />
+            </label>
+            <ul>
+                <li ng-repeat="song in results">
+                    <a ng-click="addsong(song)" href="#add">{{song.label}}</a>
+                </li>
+            </ul>
+        </div>
     </div>
 </body>
 </html>

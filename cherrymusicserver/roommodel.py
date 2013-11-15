@@ -18,6 +18,7 @@ class RoomSong():
         if not path:
             self.path    = None
             self.abspath = None
+            self.relpath = path
             self.info    = metainfo.MockTag()
         else:
             basedir = cherry.config['media.basedir']
@@ -26,7 +27,8 @@ class RoomSong():
                 path = path[7:]
             elif path.startswith('serve/'):
                 path = path[6:]
-            self.path = path
+            self.path = '/serve/' + path
+            self.relpath = path
             self.abspath = os.path.join(basedir, path)
             self.info = metainfo.getSongInfo(self.abspath)
 
@@ -41,6 +43,7 @@ class RoomSong():
 
     def dict(self):
         d = self.info.dict()
+        d['relpath'] = self.relpath
         d['path'] = self.path
         d['started'] = self.started
         return d
@@ -55,7 +58,7 @@ class RoomMember():
         self.dj = None
         self.joined = time.time()
 
-    def dict(self):
+    def dict(self, active=None):
         return {
             'uid': self.uid,
             'name': self.name,
@@ -63,6 +66,7 @@ class RoomMember():
             'playlist': self.playlist,
             'dj': self.dj,
             'joined': self.joined,
+            'active': self.uid == active,
         }
 
 @service.user(cache='filecache', 
@@ -75,7 +79,7 @@ class RoomModel:
         self.message = message
         self.roomsong = RoomSong()
         self.members = []
-        self.max_djs = 5 # @todo: add to config: cherry.config['room.max_djs']
+        self.max_djs = cherry.config['room.max_djs']
         self.current_dj = None
 
 
@@ -96,7 +100,7 @@ class RoomModel:
             next_index = 1
 
         try:
-            self.current_dj = next(user for user in djs if djs.dj == next_index)
+            self.current_dj = next(m for m in djs if m.dj == next_index)
         except StopIteration:
             self.current_dj = None
 
@@ -111,6 +115,7 @@ class RoomModel:
         try:
             return next(user for user in self.members if user and user.uid == uid)
         except StopIteration:
+            log.d("Member {0} was not found in room {1}".format(uid, self.name))
             return None
 
 
@@ -165,12 +170,12 @@ class RoomModel:
 
 
     def select_playlist(self, uid, plid=None):
-        user = self.find_member(uid)
-        if not user: return
+        member = self.find_member(uid)
+        if not member: return
         if plid:
-            user.playlist = int(plid)
+            member.playlist = int(plid)
         else: 
-            user.playlist = self.playlist.getFirstPlaylistId(uid)
+            member.playlist = self.playlist.getFirstPlaylistId(uid)
 
     """ 
         The room's current song is treated as a property so that
@@ -197,16 +202,16 @@ class RoomModel:
             log.d("No DJs; No songs")
             return
         if not dj.playlist:
-            self.undj(dj.uid)
-            self.next_song()
             log.d("DJ {0} didn't have a playlist selected. Next.".format(dj.name))
-            return
-        pl = self.playlistdb.loadPlaylist(dj.playlist, dj.uid)
-        if not pl:
             self.undj(dj.uid)
             self.next_song()
-            log.d("DJ {0} didn't have any playlist. Next.".format(dj.name))
             return
+        pl = self.playlistdb.loadPlaylist(dj.playlist, dj.uid, limit=1)
+        if not pl:
+            log.d("DJ {0} didn't have any playlist. Next.".format(dj.name))
+            self.undj(dj.uid)
+            self.next_song()
+            return
+        log.d("New song from playlist {0}: `{1}`".format(dj.playlist, pl[0].path))
         self.roomsong = RoomSong(pl[0].path)
         self.playlistdb.popPlaylist(dj.playlist)
-        log.d("New song: {0}.".format(pl[0].path))

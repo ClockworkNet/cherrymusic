@@ -93,6 +93,8 @@ class HTTPHandler(object):
             'search': self.api_search,
             'rememberplaylist': self.api_rememberplaylist,
             'saveplaylist': self.api_saveplaylist,
+            'addplaylistsong' : self.api_addplaylistsong,
+            'removeplaylistsong' : self.api_removeplaylistsong,
             'loadplaylist': self.api_loadplaylist,
             'generaterandomplaylist': self.api_generaterandomplaylist,
             'deleteplaylist': self.api_deleteplaylist,
@@ -127,6 +129,7 @@ class HTTPHandler(object):
             'rooms': self.api_rooms,
             'roominfo': self.api_roominfo,
             'dj': self.api_dj,
+            'skipsong': self.api_skipsong,
             'undj': self.api_undj,
             'song': self.api_song,
             'leave': self.api_leave,
@@ -533,16 +536,28 @@ everybody has to relogin now.''')
 
     def api_saveplaylist(self, value):
         pl = json.loads(value)
-        res = self.playlistdb.savePlaylist(
+        rsp = self.playlistdb.savePlaylist(
             userid=self.getUserId(),
-            public=1 if pl['public'] else 0,
-            playlist=pl['playlist'],
+            public=pl['public'],
             playlisttitle=pl['playlistname'],
-            overwrite=pl.get('overwrite', False))
-        if res == "success":
-            return res
-        else:
-            raise cherrypy.HTTPError(400, res)
+            playlistid=pl.get('playlistid', None))
+        return json.dumps(rsp)
+
+    def api_addplaylistsong(self, value):
+        pl = json.loads(value)
+        songs = self.playlistdb.addSong(
+                self.getUserId(), 
+                pl['plid'], 
+                pl['song'])
+        return self.jsonrenderer.render(songs)
+
+    def api_removeplaylistsong(self, value):
+        pl = json.loads(value)
+        songs = self.playlistdb.removeSong(
+                self.getUserId(), 
+                pl['plid'], 
+                pl['song'])
+        return self.jsonrenderer.render(songs)
 
     def api_deleteplaylist(self, value):
         res = self.playlistdb.deletePlaylist(value,
@@ -556,10 +571,9 @@ everybody has to relogin now.''')
             raise cherrypy.HTTPError(400, res)
 
     def api_loadplaylist(self, value):
-        return self.jsonrenderer.render(self.playlistdb.loadPlaylist(
-                                        playlistid=value,
-                                        userid=self.getUserId()
-                                        ))
+        pl = self.playlistdb.loadPlaylist(value, self.getUserId())
+        if not pl: return None
+        return self.jsonrenderer.render(pl)
 
     def api_generaterandomplaylist(self, value):
         files = self.model.randomMusicEntries(50)
@@ -726,6 +740,12 @@ everybody has to relogin now.''')
         return self.roompage
     room.exposed = True
 
+    def api_selectplaylist(self, values):
+        (room, plid) = values
+        if not room in self.rooms: return
+        self.rooms[room].select_playlist(self.getUserId(), plid)
+        return self.api_loadplaylist(plid)
+
     def api_song(self, room):
         if room in self.rooms:
             return json.dumps(self.rooms[room].song.dict())
@@ -744,6 +764,15 @@ everybody has to relogin now.''')
         self.rooms[room].dj(uid)
         return self.api_roominfo(room)
 
+    def api_skipsong(self, room):
+        if room not in self.rooms: return
+        r = self.rooms[room]
+        if not r.current_dj: return
+        uid = self.getUserId()
+        if cherrypy.session['admin'] or r.current_dj.uid == uid:
+            r.next_song()
+        return self.api_roominfo(room)
+
     def api_leave(self, room):
         if room not in self.rooms: return
         uid = self.getUserId()
@@ -754,21 +783,16 @@ everybody has to relogin now.''')
     def api_rooms(self, value):
         return json.dumps(self.rooms.keys())
 
-    def api_selectplaylist(self, values):
-        (room, plid) = values
-        if not room in self.rooms: return
-        self.rooms[room].select_playlist(self.getUserId(), plid)
-        return self.api_roominfo(room)
-
     def api_roominfo(self, room):
         if room not in self.rooms: return
         r = self.rooms[room]
+        uid = self.getUserId()
         info = {
             'name': r.name,
             'message': r.message,
             'song': r.song.dict() if r.song else None,
-            'dj': r.current_dj.dict() if r.current_dj else None,
-            'members': [m.dict() for m in r.members],
+            'dj': r.current_dj.dict(active=uid) if r.current_dj else None,
+            'members': [m.dict(active=uid) for m in r.members],
         }
         return json.dumps(info)
 
