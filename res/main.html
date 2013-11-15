@@ -343,73 +343,6 @@ PLAYLIST SAVE DIALOG OVERLAY END -->
     <li><a class="jplayer" href="#jplayer">Playlist</a></li>
 </ul> -->        
 
-<!-- JPLAYER START -->
-<div class="navbar navbar-fixed-top cm-navbar-player">
-<div class="navbar-inner">
-<div class="container-fluid">
-    <div class="row-fluid">
-    <div class="span12">
-        <div id="mediawrapper">
-            <div id="mediaplayer">
-            
-            <div id="jquery_jplayer_1" class="jp-jplayer"></div>
-                <div id="jp_ancestor" class="jp-audio">
-                    <div class="jp-type-playlist">
-                        <div class="jp-gui jp-interface">
-                            <div class="jp-center-progress-bar pointer">
-                                <div class="jp-progress progress cm-seekbar">
-                                    <div class="jp-seek-bar jp-seek-bar bar bar-success">
-                                        <div class="jp-play-bar bar"></div>
-                                    </div>
-                                    
-                                </div>
-                                
-                                <div class="jp-time-holder">
-                                    <div class="jp-current-time"></div>
-                                    <div class="jp-duration"></div>
-                                </div>
-                            </div>
-                            <div class="cm-songtitle"></div>
-                            <ul class="jp-controls">
-                                <li><a href="javascript:;" class="jp-previous btn" tabindex="1"><i class="icon-step-backward"></i></a></li>
-                                <li><a href="javascript:;" class="jp-play  btn" tabindex="1"><i class="icon-play"></i></a></li>
-                                <li><a href="javascript:;" class="jp-pause btn" tabindex="1"><i class="icon-pause"></i></a></li>
-                                <li><a href="javascript:;" class="jp-next btn" tabindex="1"><i class="icon-step-forward"></i></a></li>
-                                <li><a href="javascript:;" class="jp-stop btn" tabindex="1"><i class="icon-stop"></i></a></li>
-                            </ul>
-                            <ul class="jp-volume-toggles">
-                                <li><a href="javascript:;" class="jp-mute btn" tabindex="1" title="mute"><i class="icon-volume-off"></i></a></li>
-                                <li><a href="javascript:;" class="jp-unmute btn" tabindex="1" title="unmute"><i class="icon-volume-up"></i></a></li>
-                                <li><a href="javascript:;" class="jp-volume-max btn" tabindex="1" title="max volume"><i class="icon-volume-up"></i></a></li>
-                            </ul>
-                            
-                            <div class="cm-playlistplaytime"></div>
-                            
-                            <div class="jp-volume-bar progress pointer">
-                                <div class="jp-volume-bar-value bar"></div>
-                            </div>
-                            
-                            <ul class="jp-toggles">
-                                <li><a href="javascript:;" class="jp-shuffle" tabindex="1" title="turn shuffle on"><i class="icon-random"></i></a></li>
-                                <li><a href="javascript:;" class="jp-shuffle-off" tabindex="1" title="turn shuffle off"><i class="icon-arrow-right"></i></a></li>
-                                <li><a href="javascript:;" class="jp-repeat" tabindex="1" title="activate repeat"><i class="icon-retweet"></i></a></li>
-                                <li><a href="javascript:;" class="jp-repeat-off" tabindex="1" title="deactivate repeat off"><i class="icon-arrow-down"></i></a></li>
-                            </ul>
-                        </div>
-                        <!-- <div class="jp-no-solution">
-                                <span>Update Required</span>
-                                To play the media you will need to either update your browser to a recent version or update your <a href="http://get.adobe.com/flashplayer/" target="_blank">Flash p$
-                        </div> -->
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    </div>
-</div>
-</div>
-</div>
-<!-- JPLAYER END -->
 
 <!-- SCROLL TO TOP BUTTON -->
 <div class="scroll-to-top btn bottom-corners" onclick="window.scrollTo(0,0)">top ↑</div>  
@@ -423,7 +356,7 @@ PLAYLIST SAVE DIALOG OVERLAY END -->
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>
       </button>
-      <a id="brandname" data-toggle="modal" role="button" href="#aboutModal" class="brand">Cherry&nbsp;&nbsp;Music</a>
+      <a id="brandname" data-toggle="modal" role="button" href="#aboutModal" class="brand"><img src="res/img/cwfm.svg" alt="CWFM" /></a>
       <div class="nav-collapse collapse">
         <ul class="nav">
           <li><a href="#userOptions" role="button" data-toggle="modal">Options</a></li>
@@ -442,21 +375,77 @@ PLAYLIST SAVE DIALOG OVERLAY END -->
 <div class="container-fluid">
     <div class="row-fluid swipe-panels">
         <div class="span6 search-panel active-swipe">
-            <!--SEARCH TAB START -->
-            <div id="search">
-                <div id="searchfield">
-                    <span id="oneliner"></span>
-                    <form id="searchform" onsubmit="return submitsearch()">
-                        <div class="input-append">
-                            <input name="searchinput" class="searchinput" type="text" />
-                            <button class="btn btn-primary">Search</button>
-                        </div>
-                        <a class="btn btn-small" href="#" onclick="loadBrowser()">browse</a>               
-                    </form>
-                </div>
-                <div id="searchresults"></div>
-            </div>
-            <!--SEARCH TAB END -->
+	        <!-- JPLAYER START -->
+	        <div class="navbar cm-navbar-player">
+		        <div class="navbar-inner">
+			        <div class="container-fluid">
+				        <div class="row-fluid">
+					        <div class="span12">
+						        <div id="mediawrapper">
+							        <div id="mediaplayer">
+
+								        <div id="jquery_jplayer_1" class="jp-jplayer"></div>
+								        <div id="jp_ancestor" class="jp-audio">
+									        <div class="jp-type-playlist">
+										        <div class="jp-gui jp-interface">
+											        <div class="jp-center-progress-bar pointer">
+												        <div class="jp-progress progress cm-seekbar">
+													        <div class="jp-seek-bar jp-seek-bar bar bar-success">
+														        <div class="jp-play-bar bar"></div>
+													        </div>
+
+												        </div>
+
+												        <div class="jp-time-holder">
+													        <div class="jp-current-time"></div>
+													        <div class="jp-duration"></div>
+												        </div>
+											        </div>
+											        <div class="cm-songtitle"></div>
+											        <ul class="jp-controls">
+												        <li><a href="javascript:;" class="jp-previous btn" tabindex="1"><i class="icon-step-backward"></i></a></li>
+												        <li><a href="javascript:;" class="jp-play  btn" tabindex="1"><i class="icon-play"></i></a></li>
+												        <li><a href="javascript:;" class="jp-pause btn" tabindex="1"><i class="icon-pause"></i></a></li>
+												        <li><a href="javascript:;" class="jp-next btn" tabindex="1"><i class="icon-step-forward"></i></a></li>
+												        <li><a href="javascript:;" class="jp-stop btn" tabindex="1"><i class="icon-stop"></i></a></li>
+											        </ul>
+											        <ul class="jp-volume-toggles">
+												        <li><a href="javascript:;" class="jp-mute btn" tabindex="1" title="mute"><i class="icon-volume-off"></i></a></li>
+												        <li><a href="javascript:;" class="jp-unmute btn" tabindex="1" title="unmute"><i class="icon-volume-up"></i></a></li>
+												        <li><a href="javascript:;" class="jp-volume-max btn" tabindex="1" title="max volume"><i class="icon-volume-up"></i></a></li>
+											        </ul>
+
+											        <div class="cm-playlistplaytime"></div>
+
+											        <div class="jp-volume-bar progress pointer">
+												        <div class="jp-volume-bar-value bar"></div>
+											        </div>
+
+											        <ul class="jp-toggles">
+												        <li><a href="javascript:;" class="jp-shuffle" tabindex="1" title="turn shuffle on"><i class="icon-random"></i></a></li>
+												        <li><a href="javascript:;" class="jp-shuffle-off" tabindex="1" title="turn shuffle off"><i class="icon-arrow-right"></i></a></li>
+												        <li><a href="javascript:;" class="jp-repeat" tabindex="1" title="activate repeat"><i class="icon-retweet"></i></a></li>
+												        <li><a href="javascript:;" class="jp-repeat-off" tabindex="1" title="deactivate repeat off"><i class="icon-arrow-down"></i></a></li>
+											        </ul>
+										        </div>
+										        <!-- <div class="jp-no-solution">
+												<span>Update Required</span>
+												To play the media you will need to either update your browser to a recent version or update your <a href="http://get.adobe.com/flashplayer/" target="_blank">Flash p$
+										</div> -->
+									        </div>
+								        </div>
+							        </div>
+						        </div>
+					        </div>
+				        </div>
+			        </div>
+		        </div>
+	        </div>
+	        <!-- JPLAYER END -->
+
+	        <div id="stage" class="stage">
+
+	        </div>
         </div>
         <div class="span6 playlist-panel">
             <!-- PLAYLIST TAB START -->
@@ -470,7 +459,33 @@ PLAYLIST SAVE DIALOG OVERLAY END -->
                     <a href="javascript:;" onclick="removePlayedFromPlaylist()">Remove played tracks</a>
                 </div>
                 -->
-                
+	            
+	            <!-- USER UI START -->
+	            <div id="user">
+		            <div class="user_icon_wrap"><img src="/res/img/user_logo.jpg" alt="User Name Image" class="user_icon" /></div>
+		            <div class="user_info">
+			            <h2>Gary Dirtbus</h2>
+			            <span class="status">Currently DJing</span>
+		            </div>
+		            <span class="clearfix"></span>
+	            </div>
+
+	            <!--SEARCH TAB START -->
+	            <div id="search" >
+		            <div id="searchfield">
+			            <span id="oneliner"></span>
+			            <form id="searchform" onsubmit="return submitsearch()">
+				            <div class="input-append">
+					            <input name="searchinput" class="searchinput" type="text" />
+					            <button class="btn btn-primary">Search</button>
+				            </div>
+				            <a class="btn btn-small" href="#" onclick="loadBrowser()">browse</a>
+			            </form>
+		            </div>
+		            <div id="searchresults"></div>
+	            </div>
+	            <!--SEARCH TAB END -->
+
                 <div id="over-playlist-tabs">
                     <div id="playlistChooser"><ul class="nav nav-tabs"></ul></div>
                 </div>

@@ -1,8 +1,17 @@
-<html ng-app="cwfmRoomApp">
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7" ng-app="cwfmRoomApp"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8" ng-app="cwfmRoomApp"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9" ng-app="cwfmRoomApp"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" ng-app="cwfmRoomApp"> <!--<![endif]-->
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<link rel="icon" href="/res/favicon32.png" type="image/png"> <!-- relative path so cherrymusic can run in subdir (#344) -->
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<link rel="shortcut icon" href="/res/img/favicon.ico" /><!-- 16x16 -->
+<link rel="apple-touch-icon-precomposed" href="/res/img/apple-touch-icon-iphone.png" /><!-- 57x57 -->
+<link rel="apple-touch-icon-precomposed" sizes="72x72" href="/res/img/apple-touch-icon-ipad.png" />
+<link rel="apple-touch-icon-precomposed" sizes="114x114" href="/res/img/apple-touch-icon-iphone4.png" />
 <meta content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' name='viewport' />
+<title>Clockwork.FM</title>
 
 <link href="/res/jplayer-theme/jplayer.css?nocache" rel="stylesheet" type="text/css" />
 <!-- <link href="/res/layout.css?nocache" rel="stylesheet" type="text/css" /> -->
@@ -10,6 +19,8 @@
 
 <!-- <link media="only screen and (max-device-width: 480px) and (min-device-width: 320px)" href="/res/mobilelayout.css?nocache" type="text/css" rel="stylesheet" />  -->
 <!-- <link href="api/customcss.css?nocache" rel="stylesheet" type="text/css" /> -->
+<link rel="stylesheet" href="/res/css/normalize.css">
+<link rel="stylesheet" href="/res/css/main.css">
 <script type="text/javascript" src="/res/js/jquery-1.8.3.min.js"></script>
 <script type="text/javascript" src="/res/js/json2.min.js"></script>
 <script type="text/javascript" src="/res/js/jquery.jplayer.min.js"></script>
@@ -42,19 +53,6 @@
 <script src="/res/js/cwfm.playlist.js"></script>
 <script src="/res/js/cwfm.chatter.js"></script>
 <script src="/res/js/cwfm.app.js"></script>
-
-<style>
-#cwfmRoomCtrl { 
-    width: 30%; 
-    float: left;
-}
-#cwfmPlaylistCtrl {
-    width: 40%;
-    float: left;
-}
-</style>
-
-<title>Room</title>
 </head>
 <body>
     <div id="jplayer" class="jp-jplayer"></div>
@@ -103,44 +101,39 @@
         </ul>
     </div>
 
-    <div id="cwfmPlaylistCtrl" ng-controller="cwfmPlaylistCtrl">
-        <div ng-show="playlists.length">
-            <h3>Playlist</h3>
-            <form>
-                <label>Title: <input type="text" ng-model="selected.title" /></label>
-                <label><input type="checkbox" ng-model="selected.public" /> Public?</label>
-                <a ng-show="selected.plid" ng-click="save()" href="#save">Save</a>
-                <a ng-hide="selected.plid" ng-click="save()" href="#create">Create</a>
-            </form>
-            <h3>Available Playlists</h3>
-            <label>
-                Find a playlist: 
-                <input type="text" ng-hide="playlists.length < 10" ng-model="playlistquery" />
-            </label>
-            <ul ng-show="playlists.length">
+    <div id="cwfmPlaylistCtrl" ng-controller="cwfmPlaylistCtrl" class="playlist_wrap">
+        <div ng-show="playlists.length" class="playlist_select_wrap">
+	        <div class="playlist_current_wrap"><a href="#" ng-click="browselists()" id="playlist_current">{{selected.title || 'Select a Playlist...'}}</a></div>
+            <ul ng-show="playlists.length" id="playlists_list">
+	            <li><a id="new_playlist">New Playlist</a><form>
+		            <label>Title: <input type="text" ng-model="selected.title" /></label>
+		            <label><input type="checkbox" ng-model="selected.public" /> Public?</label>
+		            <a ng-show="selected.plid" ng-click="save()" href="#save">Save</a>
+		            <a ng-hide="selected.plid" ng-click="save()" href="#create">Create</a>
+	            </form></li>
                 <li ng-repeat="playlist in playlists | filter:playlistquery">
-                    <a ng-click="select(playlist)" href="#load">{{playlist.title}}</a>
+                    <a ng-click="select(playlist)" href="#load" class="playlists_item" ng-class-odd="'odd'" ng-class-even="'even'" ng-class="{'last':$last}">{{playlist.title}}</a>
                 </li>
             </ul>
+	        <!--<label>-->
+		        <!--Find a playlist:-->
+		        <!--<input type="text" ng-hide="playlists.length < 10" ng-model="playlistquery" />-->
+	        <!--</label>-->
         </div>
-        <div ng-show="songs">
-            <h3>{{selected.title}} Songs</h3>
-            <ul>
-                <li ng-repeat="song in songs">
-                    <a ng-click="removesong(song)" href="#remove">[x]</a> {{song.label}}
-                </li>
-            </ul>
-        </div>
-        <div ng-show="selected">
-        <h3>Add Songs to {{selected.title}}</h3>
-            <label>
-                Find a song: 
-                <input type="text" ng-model="query" />
-            </label>
-            <ul>
-                <li ng-repeat="song in results">
-                    <a ng-click="addsong(song)" href="#add">{{song.label}}</a>
-                </li>
+	    <div ng-show="selected" class="songlist_wrap">
+		    <div class="add_song_wrap">
+			    <label for="add_song" id="add_song_label">Add a Song</label><input type="text" id="add_song" ng-model="query" placeholder="Add a Song" /><a href="#" ng-show="query" ng-click="closesongsearch()">(X)</a>
+		    </div>
+
+		    <ul ng-show="results.length" id="song_results_list" class="songs_list">
+			    <li ng-repeat="song in results" class="songs_item" ng-class-odd="'odd'" ng-class-even="'even'" ng-class="{'last':$last}">
+				    <a ng-click="addsong(song)" href="#add">{{song.label}}</a>
+			    </li>
+		    </ul>
+	    </div>
+        <div ng-show="songs" id="myqueue_wrap">
+            <ul id="my_queue" class="songs_list">
+                <li ng-repeat="song in songs"  class="songs_item" ng-class-odd="'odd'" ng-class-even="'even'" ng-class="{'last':$last}">{{song.label}}<a ng-click="removesong(song)" href="#remove" class="remove">[x]</a></li>
             </ul>
         </div>
     </div>

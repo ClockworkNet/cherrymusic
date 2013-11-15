@@ -36,6 +36,7 @@ cwfm.playlist.ctrl  =  function( $scope, $http, $roomservice ) {
             song.track  =  index;
         } );
         $scope.songs  =  rsp;
+		$('#playlists_list').slideUp();
     };
 
     var on_songchange  =  function( old_song, new_song ) {
@@ -92,6 +93,15 @@ cwfm.playlist.ctrl  =  function( $scope, $http, $roomservice ) {
             $http.get( apiurl ).success( done );
         }
     };
+
+	$scope.browselists  =  function( ) {
+		$('#playlists_list').slideToggle();
+	};
+
+	$scope.closesongsearch  =  function( ) {
+		$scope.query = "";
+		$scope.results = [];
+	};
 
     $scope.select  =  function( pl ) {
         $scope.selected = pl;

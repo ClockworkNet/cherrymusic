@@ -25,7 +25,7 @@
 #
 */
 body {
-    padding-top: 95px; /* top nav bar and player */
+    /*padding-top: 95px; *//* top nav bar and player */
 }
 .pointer { cursor: pointer; }
 
@@ -82,18 +82,17 @@ body {
 /* NAVBAR LAYOUT */
 
 #brandname{
-    background-image: url("favicon32glow.png");
-    background-position: 50% 0;
-    background-repeat: no-repeat;
-    height: 34px;
+    /*background-image: url("favicon32glow.png");*/
+    /*background-position: 50% 0;*/
+    /*background-repeat: no-repeat;*/
+    height: 70px;
+	width: 70px;
     left: 50%;
-    margin: 0 0 0 -70px !important;
+    margin: -2px 0 0 -35px !important;
     overflow: hidden;
     padding: 0 !important;
     position: absolute;
     text-align: center;
-    top: 108px;
-    width: 140px;
 }
 
 /* JPLAYER LAYOUT */
@@ -341,7 +340,12 @@ div#progressscreen img{
     top: 50%;
     width: 80px;
 }
-
+#searchresults {
+	max-height: 300px;
+	overflow: scroll;
+	border: 1px solid #dedede;
+	margin-bottom: 15px;
+}
 #searchresults ul{
 	padding: 0 0 0 20px;
     list-style: none;
@@ -489,5 +493,30 @@ li.fileinlist a{
 }
 
 /* END OF OLD STUFF */
+.stage {
+	width: 100%;
+	background: #666;
+}
 
-
+/* USER INFO */
+#user {
+	display: block;
+	background: #dedede;
+	padding-bottom: 5px;
+	margin-bottom: 10px;
+}
+.user_icon {
+	float: left;
+	max-width: 100%;
+}
+.user_icon_wrap {
+	width: 100px;
+	padding: 5px;
+}
+.user_info {
+	float:left;
+	margin-left: 10px;
+}
+.clearfix {
+	clear:both;
+}
