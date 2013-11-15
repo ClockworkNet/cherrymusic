@@ -115,7 +115,7 @@
 	        <!--</label>-->
         </div>
 	    <div ng-show="selected">
-		    <label for="add_song" id="add_song_label">Add a Song</label><input type="text" id="add_song" ng-model="query" placeholder="Add a Song" /><a href="#" ng-click="closesongsearch">(X)</a>
+		    <label for="add_song" id="add_song_label">Add a Song</label><input type="text" id="add_song" ng-model="query" placeholder="Add a Song" /><a href="#" ng-click="closesongsearch()">(X)</a>
 		    <ul class="songs_list">
 			    <li ng-repeat="song in results">
 				    <a ng-click="addsong(song)" href="#add" class="songs_item" ng-class-odd="'odd'" ng-class-even="'even'" ng-class="{'last':$last}">{{song.label}}</a>

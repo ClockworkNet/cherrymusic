@@ -101,7 +101,6 @@ cwfm.playlist.ctrl  =  function( $scope, $http, $roomservice ) {
 	$scope.closesongsearch  =  function( ) {
 		$scope.query = "";
 		$scope.results = [];
-		$('#add_song').val("");
 	};
 
     $scope.select  =  function( pl ) {
