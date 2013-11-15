@@ -249,6 +249,12 @@ h1 {
 }
 
 /* Add to songs */
+.songlist_wrap {
+	background: #e7e8c3;
+}
+.add_song_wrap {
+	padding:  0.3em 0.5em;
+}
 .songs_list {
 	padding: 0;
 	list-style-type: none;
@@ -256,6 +262,7 @@ h1 {
 	border-bottom: 1px solid #999;
 	overflow-y: scroll;
 	max-height: 300px;
+	margin: 0;
 }
 .songs_item {
 	display: block;
@@ -267,8 +274,11 @@ h1 {
 .songs_item.even {
 	background: #E6E6E6;
 }
+.songs_item.odd {
+	background: #e1e1e1;
+}
 .songs_item:hover, .songs_item:active,
-.songs_item.even:hover, .songs_item.even:active {
+.songs_item.even:hover, .songs_item.odd:active {
 	background: #ede38a;
 }
 .songs_item.last {
