@@ -98,12 +98,12 @@ class UserDB:
         if not (username.strip() and password.strip()):
             return User.nobody()
 
-        rows = self.conn.execute('SELECT rowid, username, admin, password, salt'
+        rows = self.conn.execute('SELECT ' + FIELDLIST + 
                                  ' FROM users WHERE username = ?', (username,))\
                                  .fetchall()
         assert len(rows) <= 1
         if rows:
-            user = User(*rows[0])
+            user = User._make(rows[0])
             if Crypto.scramble(password, user.salt) == user.password:
                 return user
         return User.nobody()

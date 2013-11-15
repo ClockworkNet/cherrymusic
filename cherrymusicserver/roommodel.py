@@ -43,24 +43,25 @@ class RoomSong():
         if member.uid in self.voters:
             lastvote = self.voters[member.uid]
             if lastvote == self.UP: 
-                return
+                return False
             else:
                 self.downvotes -= 1
         self.voters[member.uid] = self.UP
         self.upvotes += 1
-        member.points += 1
+        return True
 
     def downvote(self, member):
+        reversal = False
         if member.uid in self.voters:
             lastvote = self.voters[member.uid]
             if lastvote == self.DOWN: 
-                return
+                return False
             else:
-                # undo a previous bump to the member
-                member.points -= 1
+                reversal = True
                 self.upvotes -= 1
         self.voters[member.uid] = self.DOWN
         self.downvotes += 1
+        return reversal 
 
     @property
     def score(self):
@@ -108,6 +109,34 @@ class RoomMember():
             'active': self.uid == active,
         }
 
+class RoomChatter():
+    def __init__(self):
+        self.messages = [] 
+
+    def say(self, member, message):
+        log.i("Adding message from " + member.user.username + ": '" + message + "'")
+        self.messages.append({
+            'time': time.time(),
+            'member': member,
+            'message': message,
+        })
+
+    def dict(self, after=None):
+        if after:
+            messages = [m for m in self.messages if m.time > after]
+        else:
+            messages = self.messages
+        def d(item):
+            user = item.member.user
+            return {
+                    'time': item.time, 
+                    'uid': user.uid,
+                    'username': user.username,
+                    'message': item.message,
+                    }
+        return [d(m) for m in messages]
+
+
 @service.user(cache='filecache', 
         model='cherrymodel',
         playlistdb='playlist',
@@ -120,6 +149,7 @@ class RoomModel:
         self.members = []
         self.max_djs = cherry.config['room.max_djs']
         self.current_dj = None
+        self.chatter = RoomChatter()
 
 
     def next_dj(self):
@@ -157,22 +187,40 @@ class RoomModel:
             log.d("Member {0} was not found in room {1}".format(uid, self.name))
             return None
 
-    def can_vote(self, uid):
+
+    def voting_member(self, uid):
         member = self.find_member(uid)
-        if not member: return False
-        if not self.current_dj: return False
-        if self.current_dj.uid == uid: return False
-        return True
+        if not member: return None
+        if not self.current_dj: return None
+        if self.current_dj.uid == uid: return None
+        return member 
+
+
+    def handle_command(member, cmd):
+        if not member.admin: return False
+        if cmd[0] != "\\": return False
+        return False
+
+
+    def say(self, uid, msg):
+        member = self.find_member(uid)
+        if not member or not msg: return
+        if self.handle_command(member, msg): return
+        self.chatter.say(member, msg)
 
 
     def upvote(self, uid):
-        if not self.can_vote(uid): return
-        self.roomsong.upvote(member)
+        member = self.voting_member(uid)
+        if not member: return
+        if self.roomsong.upvote(member):
+            self.current_dj.points += 1
 
 
     def downvote(self, uid):
-        if not self.can_vote(uid): return
-        self.roomsong.downvote(member)
+        member = self.voting_member(uid)
+        if not member: return
+        if self.roomsong.downvote(member):
+            self.current_dj.points -= 1
 
 
     def join(self, uid):

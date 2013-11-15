@@ -133,6 +133,8 @@ class HTTPHandler(object):
             'undj': self.api_undj,
             'song': self.api_song,
             'leave': self.api_leave,
+            'say': self.api_say,
+            'chatter': self.api_chatter,
             'upvote': self.api_upvote,
             'downvote': self.api_downvote,
             'selectplaylist': self.api_selectplaylist,
@@ -781,6 +783,20 @@ everybody has to relogin now.''')
         log.i("{0} left room {0}".format(uid, room))
         self.rooms[room].leave(uid)
         return self.api_roominfo(room)
+
+    def api_say(self, values):
+        (room, msg) = values
+        if room not in self.rooms: return
+        uid = self.getUserId()
+        self.rooms.say(uid, msg)
+
+    def api_chatter(self, values):
+        if isinstance(values, str):
+            (room, after) = (values, None)
+        else: 
+            (room, after) = values
+        if room not in self.rooms: return
+        return json.dumps(self.rooms[room].chatter.dict(after))
 
     def api_upvote(self, room):
         if room not in self.rooms: return

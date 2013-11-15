@@ -40,6 +40,7 @@
 <script src="/res/js/cwfm.filters.js"></script>
 <script src="/res/js/cwfm.room.js"></script>
 <script src="/res/js/cwfm.playlist.js"></script>
+<script src="/res/js/cwfm.chatter.js"></script>
 <script src="/res/js/cwfm.app.js"></script>
 
 <style>
@@ -93,8 +94,8 @@
 
         <h2>Actions</h2>
         <ul>
-            <li ng-show="!me.dj && room.song.length"><a ng-click="api('upvote')" href="#upvote">Upvote</a></li>
-            <li ng-show="!me.dj && room.song.length"><a ng-click="api('downvote')" href="#downvote">Downvote</a></li>
+            <li ng-show="room.song.length"><a ng-click="api('upvote')" href="#upvote">Upvote</a></li>
+            <li ng-show="room.song.length"><a ng-click="api('downvote')" href="#downvote">Downvote</a></li>
             <li ng-hide="me.dj"><a ng-click="api('dj')" href="#dj">Start DJing</a></li>
             <li ng-show="me.dj"><a ng-click="api('undj')" href="#undj">Stop DJing</a></li>
             <li ng-show="me.isadmin || is_current_dj(me)"><a ng-click="api('skipsong')" href="#skip">Skip Song</a></li>
@@ -142,6 +143,14 @@
                 </li>
             </ul>
         </div>
+    </div>
+
+    <div id="cwfmChatterCtrl" ng-controller="cwfmChatterCtrl">
+        <ol>
+            <li ng-repeat="message in messages"></li>
+        </ol>
+        <textarea ng-model="message">$scope.message</textarea>
+        <a href="#send" ng-click="send()">Send</a>
     </div>
 </body>
 </html>
