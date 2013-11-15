@@ -40,11 +40,12 @@ from cherrymusicserver import service
 from cherrymusicserver.database.connect import BoundConnector
 
 DBNAME = 'user'
-
+FIELDS = ['rowid', 'username', 'admin', 'realname', 'avatar_url', 'public_url', 'points', 'password', 'salt']
+FIELDLIST = ", ".join(FIELDS)
 
 class UserDB:
     def __init__(self, connector=None):
-        database.require(DBNAME, version='1')
+        database.require(DBNAME, version='2')
         self.conn = BoundConnector(DBNAME, connector).connection()
 
     def addUser(self, username, password, admin):
@@ -85,6 +86,10 @@ class UserDB:
             return True
         return False
 
+    def savePoints(self, uid, points):
+        self.conn.execute("UPDATE users SET points = ? WHERE rowid = ?", (points, uid))
+        self.conn.commit()
+
     def auth(self, username, password):
         '''try to authenticate the given username and password. on success,
         a valid user tuple will be returned; failure will return User.nobody().
@@ -112,9 +117,11 @@ class UserDB:
         return ret
 
     def getUser(self, userid):
-        res = self.conn.execute("SELECT rowid, username, admin FROM users WHERE rowid = ?", (userid,))
+        res = self.conn.execute("SELECT " + FIELDLIST + " FROM users WHERE rowid = ?", (userid,))
         row = res.fetchone()
-        return User(row[0], row[1], row[2], None, None) if row else User.nobody()
+        if not row: return User.nobody()
+        user = User._make(row).withoutAuth()
+        return user
 
     def getUserCount(self):
         cur = self.conn.cursor()
@@ -145,9 +152,30 @@ class Crypto(object):
         return hashlib.sha512(saltedpassword_bytes).hexdigest()
 
 
-class User(namedtuple('User_', 'uid name isadmin password salt')):
+class User(namedtuple('User_', FIELDLIST)):
 
     __NOBODY = None
+
+    @property
+    def isadmin(self):
+        return self.admin
+
+    @property
+    def name(self):
+        return self.username
+
+    @property
+    def uid(self):
+        return self.rowid
+
+    def withoutAuth(self):
+        return self._replace(password=None, salt=None)
+
+    def __new__(self, *args, **kwargs):
+        values = []
+        for field in FIELDS:
+            values.append(kwargs.get(field, None))
+        return super(User, self).__new__(self, *values)
 
     @classmethod
     def create(cls, name, password, isadmin=False):
@@ -161,12 +189,12 @@ class User(namedtuple('User_', 'uid name isadmin password salt')):
 
         salt = Crypto.generate_salt()
         password = Crypto.scramble(password, salt)
-        return User(-1, name, isadmin, password, salt)
+        return User(rowid=-1, username=name, admin=isadmin, password=password, salt=salt)
 
 
     @classmethod
     def nobody(cls):
         '''return a user object representing an unknown user'''
         if User.__NOBODY is None:
-            User.__NOBODY = User(-1, None, None, None, None)
+            User.__NOBODY = User(rowi=-1, username=None, admin=None, password=None, salt=None)
         return User.__NOBODY

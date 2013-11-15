@@ -70,24 +70,29 @@
 
             <dt>Played By</dt>
             <dd>{{room.dj.name}}</dd>
+
+            <dt>Score</dt>
+            <dd>{{room.song.score}}</dd>
         </dl>
 
         <h2>DJs</h2>
         <ul>
             <li ng-repeat="member in room.members | filter:is_dj:member">
-                {{is_dj(member) | checkmark}}{{member.name}}
+                {{is_dj(member) | checkmark}}{{member.name}} ({{member.points}})
             </li>
         </ul>
 
         <h2>Room members</h2>
         <ul>
             <li ng-repeat="member in room.members | filter:not(is_dj):member">
-                {{is_dj(member) | checkmark}}{{member.name}}
+                {{is_dj(member) | checkmark}}{{member.name}} ({{member.points}})
             </li>
         </ul>
 
         <h2>Actions</h2>
         <ul>
+            <li ng-show="!me.dj && room.song.length"><a ng-click="api('upvote')" href="#upvote">Upvote</a></li>
+            <li ng-show="!me.dj && room.song.length"><a ng-click="api('downvote')" href="#downvote">Downvote</a></li>
             <li ng-hide="me.dj"><a ng-click="api('dj')" href="#dj">Start DJing</a></li>
             <li ng-show="me.dj"><a ng-click="api('undj')" href="#undj">Stop DJing</a></li>
             <li ng-show="me.isadmin || is_current_dj(me)"><a ng-click="api('skipsong')" href="#skip">Skip Song</a></li>
