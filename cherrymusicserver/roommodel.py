@@ -90,10 +90,10 @@ class RoomMember():
         self.uid = user.rowid
         self.name = user.username
         self.user = user
-        self.playlist = None
         self.dj = None
         self.points = user.points
         self.joined = time.time()
+        self.playlist = None
 
     def dict(self, active=None):
         return {
@@ -228,7 +228,8 @@ class RoomModel:
         member = self.find_member(uid)
         if member: return
         user = self.userdb.getUser(uid)
-        if user: self.members.append(RoomMember(user))
+        if user: 
+            self.members.append(RoomMember(user))
 
 
     def leave(self, uid):
@@ -243,12 +244,9 @@ class RoomModel:
         if member is None: return
         if member.dj is not None: return
 
-        index = max(m.dj for m in self.members)
+        self.select_playlist(uid, plid)
 
-        if plid:
-            member.playlist = plid
-        else:
-            member.playlist = self.playlistdb.getFirstPlaylistId(uid)
+        index = max(m.dj for m in self.members)
 
         if index is None:
             member.dj = 1
