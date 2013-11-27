@@ -88,6 +88,7 @@ class RoomSong():
 class RoomMember():
     def __init__(self, user):
         self.uid = user.rowid
+        self.name = user.username
         self.user = user
         self.playlist = None
         self.dj = None
