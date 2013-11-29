@@ -55,6 +55,7 @@ class JSON(object):
 
     def render(self, musicentries):
         retlist = []
+        if not musicentries: return json.dumps([])
         for entry in musicentries:
             if entry.compact:
                 #compact

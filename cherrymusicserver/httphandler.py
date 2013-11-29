@@ -542,7 +542,7 @@ everybody has to relogin now.''')
         pl = json.loads(value)
         rsp = self.playlistdb.savePlaylist(
             userid=self.getUserId(),
-            public=pl['public'],
+            public=pl.get('public'),
             playlisttitle=pl['playlistname'],
             playlistid=pl.get('playlistid', None))
         return json.dumps(rsp)

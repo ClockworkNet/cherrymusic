@@ -133,25 +133,29 @@ class PlaylistDB:
 
     def loadPlaylist(self, playlistid, userid, limit=None):
         cursor = self.conn.cursor()
-        cursor.execute("""SELECT rowid FROM playlists WHERE
-            rowid = ? AND (public = 1 OR userid = ?) LIMIT 0,1""",
-            (playlistid, userid));
+        sql = "SELECT rowid FROM playlists WHERE rowid = ? AND (public = 1 OR userid = ?) LIMIT 0,1"
+        cursor.execute(sql, (playlistid, userid));
         result = cursor.fetchone()
-        if result:
-            sql = "SELECT title, url FROM tracks WHERE playlistid = ? ORDER BY track ASC"
-            if limit: sql += " LIMIT 0," + str(limit)
-            cursor.execute(sql, (playlistid,))
-            alltracks = cursor.fetchall()
-            apiplaylist = []
-            for track in alltracks:
-                #TODO ugly hack: playlistdb saves the "serve" dir as well...
-                trackurl = unquote(track[1])
-                if trackurl.startswith('/serve/'):
-                    trackurl = trackurl[7:]
-                elif trackurl.startswith('serve/'):
-                    trackurl = trackurl[6:]
-                apiplaylist.append(MusicEntry(path=trackurl, repr=unquote(track[0])))
-            return apiplaylist
+        if not result:
+            log.i("Could not find playlist {0} for user id {1}".format((playlistid, userid)))
+            return None
+        sql = "SELECT title, url FROM tracks WHERE playlistid = ? ORDER BY track ASC"
+        if limit: sql += " LIMIT 0," + str(limit)
+        cursor.execute(sql, (playlistid,))
+        alltracks = cursor.fetchall()
+        if not alltracks:
+            log.i("No songs in playlist {0}".format(playlistid))
+            return None
+        apiplaylist = []
+        for track in alltracks:
+            #TODO ugly hack: playlistdb saves the "serve" dir as well...
+            trackurl = unquote(track[1])
+            if trackurl.startswith('/serve/'):
+                trackurl = trackurl[7:]
+            elif trackurl.startswith('serve/'):
+                trackurl = trackurl[6:]
+            apiplaylist.append(MusicEntry(path=trackurl, repr=unquote(track[0])))
+        return apiplaylist
 
     def getName(self, plid, userid ):
         cur = self.conn.cursor()
@@ -171,14 +175,16 @@ class PlaylistDB:
     def showPlaylists(self, userid):
         cur = self.conn.cursor()
         #change rowid to id to match api
-        cur.execute("""SELECT rowid as id,title, userid, public FROM playlists WHERE
+        cur.execute("""SELECT rowid as id, title, userid, public FROM playlists WHERE
             public = 1 OR userid = ?""", (userid,))
         res = cur.fetchall()
         return list(map(lambda x: {'plid':x[0], 'title':x[1], 'userid':x[2],'public':bool(x[3]), 'owner':bool(userid==x[2])}, res))
 
     def getFirstPlaylistId(self, userid):
         cur = self.conn.cursor()
-        cur.execute("SELECT rowid FROM playlists WHERE userid = ?", (userid,))
+        cur.execute("""SELECT playlists.rowid FROM playlists 
+            JOIN tracks ON (playlists.rowid = tracks.playlistid) 
+            WHERE userid = ? OR public = 1 LIMIT 0, 1""", (userid,))
         res = cur.fetchone()
         return res[0] if res else None
 

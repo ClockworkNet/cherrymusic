@@ -228,8 +228,10 @@ class RoomModel:
         member = self.find_member(uid)
         if member: return
         user = self.userdb.getUser(uid)
-        if user: 
-            self.members.append(RoomMember(user))
+        if not user: return
+        member = RoomMember(user)
+        member.playlist = self.playlistdb.getFirstPlaylistId(uid)
+        self.members.append(member)
 
 
     def leave(self, uid):
@@ -244,10 +246,9 @@ class RoomModel:
         if member is None: return
         if member.dj is not None: return
 
-        self.select_playlist(uid, plid)
+        if plid: member.playlist = plid
 
         index = max(m.dj for m in self.members)
-
         if index is None:
             member.dj = 1
             self.current_dj = member
@@ -278,7 +279,8 @@ class RoomModel:
         if plid:
             member.playlist = int(plid)
         else: 
-            member.playlist = self.playlist.getFirstPlaylistId(uid)
+            member.playlist = self.playlistdb.getFirstPlaylistId(uid)
+        log.i("selected {0} for member {1}".format(member.playlist, uid))
 
     """ 
         The room's current song is treated as a property so that
@@ -319,7 +321,7 @@ class RoomModel:
             return
         pl = self.playlistdb.loadPlaylist(dj.playlist, dj.uid, limit=1)
         if not pl:
-            log.d("DJ {0} didn't have any playlist. Next.".format(dj.name))
+            log.d("Couldn't find playlist {0} for DJ {1}. Next.".format(dj.playlist, dj.name))
             self.undj(dj.uid)
             self.next_song()
             return
