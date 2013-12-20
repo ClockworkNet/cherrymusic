@@ -125,6 +125,10 @@ class RoomChatter():
         self.messages.append(msg)
         return msg
 
+    def log(self, member, message):
+        self.say(member, message)
+
+
     def dict(self, after=None):
         if after:
             return [m for m in self.messages if m['time'] >= after]
@@ -190,10 +194,13 @@ class RoomModel:
         return member 
 
 
-    def handle_command(self, member, cmd):
+    def handle_command(self, member, msg):
         if not member.user.isadmin: return False
-        if cmd[0] != "\\": return False
-        return False
+        if msg[0] != "\\": return False
+        cmd = msg[1:msg.find(" ")]
+        args = msg[msg.find(" ") + 1:]
+        log.i("{0} executed command '{1}' with '{2}'".format(member.uid, cmd, args))
+        return True 
 
 
     def say(self, uid, msg):
@@ -319,5 +326,6 @@ class RoomModel:
             self.next_song()
             return
         log.d("New song from playlist {0}: `{1}`".format(dj.playlist, pl[0].path))
+        self.chatter.log(dj, "Started playing: {0}".format(pl[0].path))
         self.roomsong = RoomSong(pl[0].path)
         self.playlistdb.popPlaylist(dj.playlist)

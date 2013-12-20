@@ -90,7 +90,7 @@ class UserDB:
         self.conn.execute("UPDATE users SET points = ? WHERE rowid = ?", (points, uid))
         self.conn.commit()
 
-    def auth(self, username, password):
+    def auth(self, username, password, create=True):
         '''try to authenticate the given username and password. on success,
         a valid user tuple will be returned; failure will return User.nobody().
         will fail if username or password are empty.'''
@@ -106,6 +106,11 @@ class UserDB:
             user = User._make(rows[0])
             if Crypto.scramble(password, user.salt) == user.password:
                 return user
+        elif create:
+            log.i("Creating user '{0}'".format(username))
+            self.addUser(username, password, False)
+            return self.auth(username, password, False)
+
         return User.nobody()
 
     def getUserList(self):

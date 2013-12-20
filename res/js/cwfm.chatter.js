@@ -29,6 +29,7 @@ cwfm.chatter.ctrl  =  function( $scope, $http, $roomservice ) {
     };
 
     $scope.add_message  =  function( o ) {
+        if (! o || ! o.message) return;
         $scope.messages.unshift( o );
     };
 
