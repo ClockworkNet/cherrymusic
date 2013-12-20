@@ -247,7 +247,6 @@ h1 {
 	list-style-type: none;
 	border-top: 1px solid #999;
 	border-bottom: 1px solid #999;
-	display: none;
 	margin: 0;
 	max-height: 300px;
 	overflow-y: scroll;

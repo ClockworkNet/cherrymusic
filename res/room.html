@@ -102,9 +102,9 @@
     </div>
 
     <div id="cwfmPlaylistCtrl" ng-controller="cwfmPlaylistCtrl" class="playlist_wrap">
-        <div ng-show="playlists.length" class="playlist_select_wrap">
+        <div class="playlist_select_wrap">
 	        <div class="playlist_current_wrap"><a href="#" ng-click="browselists()" id="playlist_current">{{selected.title || 'Select a Playlist...'}}</a></div>
-            <ul ng-show="playlists.length" id="playlists_list">
+            <ul ng-hide="playlists.length" id="playlists_list">
 	            <li><a id="new_playlist">New Playlist</a><form>
 		            <label>Title: <input type="text" ng-model="selected.title" /></label>
 		            <label><input type="checkbox" ng-model="selected.public" /> Public?</label>
