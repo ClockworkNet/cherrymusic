@@ -301,6 +301,7 @@ Have fun!
             'tools.sessions.timeout': 60 * 24,
         })
 
+
         if not config['server.keep_session_in_ram']:
             sessiondir = os.path.join(
                 pathprovider.getUserDataPath(), 'sessions')

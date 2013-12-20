@@ -278,6 +278,8 @@ everybody has to relogin now.''')
         #parse value (is list of arguments, but if the list has only
         #one element, this element is directly passed to the handler)
         value = kwargs.get('value', '')
+        if value:
+            value = json.loads(value)
         if not value and len(args) > 1:
             value = list(map(unquote, args[1:len(args)]))
             if len(value) == 1:
@@ -788,7 +790,8 @@ everybody has to relogin now.''')
         (room, msg) = values
         if room not in self.rooms: return
         uid = self.getUserId()
-        self.rooms.say(uid, msg)
+        log.d("Member {0} said '{1}' in {2}.".format(uid, msg, room))
+        return json.dumps(self.rooms[room].say(uid, msg))
 
     def api_chatter(self, values):
         if isinstance(values, str):
@@ -796,7 +799,8 @@ everybody has to relogin now.''')
         else: 
             (room, after) = values
         if room not in self.rooms: return
-        return json.dumps(self.rooms[room].chatter.dict(after))
+        chatting = self.rooms[room].chatter.dict(after)
+        return json.dumps(chatting)
 
     def api_upvote(self, room):
         if room not in self.rooms: return

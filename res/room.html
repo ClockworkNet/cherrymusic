@@ -139,11 +139,11 @@
     </div>
 
     <div id="cwfmChatterCtrl" ng-controller="cwfmChatterCtrl">
-        <ol>
-            <li ng-repeat="message in messages"></li>
-        </ol>
-        <textarea ng-model="message">$scope.message</textarea>
-        <a href="#send" ng-click="send()">Send</a>
+        <p><input ng-model="message" value="$scope.message" /></p>
+        <p><a href="#send" ng-click="send()">Send</a></p>
+        <ul>
+            <li ng-repeat="m in messages"><strong>{{m.username}}</strong>: {{m.message}}</li>
+        </ul>
     </div>
 </body>
 </html>

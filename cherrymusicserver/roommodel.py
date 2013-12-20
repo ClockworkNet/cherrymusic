@@ -116,26 +116,19 @@ class RoomChatter():
 
     def say(self, member, message):
         log.i("Adding message from " + member.user.username + ": '" + message + "'")
-        self.messages.append({
+        msg = {
             'time': time.time(),
-            'member': member,
+            'uid': member.user.uid,
+            'username': member.user.username,
             'message': message,
-        })
+        }
+        self.messages.append(msg)
+        return msg
 
     def dict(self, after=None):
         if after:
-            messages = [m for m in self.messages if m.time > after]
-        else:
-            messages = self.messages
-        def d(item):
-            user = item.member.user
-            return {
-                    'time': item.time, 
-                    'uid': user.uid,
-                    'username': user.username,
-                    'message': item.message,
-                    }
-        return [d(m) for m in messages]
+            return [m for m in self.messages if m['time'] >= after]
+        return self.messages
 
 
 @service.user(cache='filecache', 
@@ -197,8 +190,8 @@ class RoomModel:
         return member 
 
 
-    def handle_command(member, cmd):
-        if not member.admin: return False
+    def handle_command(self, member, cmd):
+        if not member.user.isadmin: return False
         if cmd[0] != "\\": return False
         return False
 
@@ -207,7 +200,7 @@ class RoomModel:
         member = self.find_member(uid)
         if not member or not msg: return
         if self.handle_command(member, msg): return
-        self.chatter.say(member, msg)
+        return self.chatter.say(member, msg)
 
 
     def upvote(self, uid):

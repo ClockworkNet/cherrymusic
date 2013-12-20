@@ -17,7 +17,10 @@ cwfm.chatter.ctrl  =  function( $scope, $http, $roomservice ) {
 
         request.success( function( rsp ) {
             if (rsp.length > 0) console.info(rsp);
-            $scope.messages   =  rsp;
+            if (!$scope.messages) $scope.messages = [];
+            for (var i=0; i<rsp.length; i++) {
+                $scope.add_message(rsp[i]);
+            }
             $scope.last_time  =  +new Date;
             setTimeout( refresh, $scope.polling );
         });
@@ -25,15 +28,21 @@ cwfm.chatter.ctrl  =  function( $scope, $http, $roomservice ) {
         });
     };
 
+    $scope.add_message  =  function( o ) {
+        $scope.messages.unshift( o );
+    };
+
     $scope.send  =  function( ) {
-        var apiurl  = '/api/say/' + $roomservice.get_name( );
-        var data    = { 'msg': $scope.message };
+        var apiurl  = '/api/say/';
+        var msg     = $scope.message;
+        var data    = [ $roomservice.get_name( ), msg ];
         $http({
             method : 'POST'
             , url  : apiurl
-            , data : $.param( { value : data } )
+            , data : $.param( { value : JSON.stringify( data ) } )
             , headers : {'Content-Type': 'application/x-www-form-urlencoded'}
-        }).success( function( ) {
+        }).success( function( rsp ) {
+            $scope.add_message(rsp);
             $scope.message  =  '';
         });
     };
