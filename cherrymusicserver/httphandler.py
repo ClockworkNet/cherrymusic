@@ -809,7 +809,7 @@ everybody has to relogin now.''')
         self.rooms[room].downvote(uid)
         return self.api_roominfo(room)
 
-    def api_rooms(self, value):
+    def api_rooms(self):
         return json.dumps(self.rooms.keys())
 
     def api_roominfo(self, room):
