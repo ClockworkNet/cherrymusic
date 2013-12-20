@@ -117,6 +117,7 @@ class RoomChatter():
     def say(self, member, message):
         log.i("Adding message from " + member.user.username + ": '" + message + "'")
         msg = {
+            'id': len(self.messages),
             'time': time.time(),
             'uid': member.user.uid,
             'username': member.user.username,
@@ -130,8 +131,7 @@ class RoomChatter():
 
 
     def dict(self, after=None):
-        if after:
-            return [m for m in self.messages if m['time'] >= after]
+        if after: return [m for m in self.messages if m['id'] > int(after)]
         return self.messages
 
 

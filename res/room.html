@@ -142,7 +142,10 @@
         <p><input ng-model="message" value="$scope.message" /></p>
         <p><a href="#send" ng-click="send()">Send</a></p>
         <ul>
-            <li ng-repeat="m in messages"><strong>{{m.username}}</strong>: {{m.message}}</li>
+            <li ng-repeat="m in sorted()">
+                <strong>{{m.username}}</strong>: {{m.message}}
+                <br /><em>{{m.time}}</em>
+            </li>
         </ul>
     </div>
 </body>
