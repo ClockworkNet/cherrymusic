@@ -41,7 +41,7 @@ cwfm.playlist.ctrl  =  function( $scope, $http, $roomservice ) {
 
     var on_songchange  =  function( old_song, new_song ) {
         if ( ! $scope.selected ) return;
-        api( 'loadplaylist', $scope.selected.plid, on_loadplaylist )
+        get( 'loadplaylist', $scope.selected.plid, on_loadplaylist );
     };
 
     var init  =  function( ) {
@@ -50,48 +50,32 @@ cwfm.playlist.ctrl  =  function( $scope, $http, $roomservice ) {
         $roomservice.on( 'songchange', on_songchange, $scope );
         $scope.$watch( 'query', $scope.search );
 
-        api( 'showplaylists', on_showplaylists );
+        get( 'showplaylists', [], on_showplaylists );
     };
 
-    var api  =  function( ) {
-        var args    =  Array.prototype.slice.call( arguments, 0 );
-        var action  =  args.shift( );
+    var post  =  function( action, data, callback ) {
+        action      = typeof action != 'string' ? action.join( '/' ) : action;
+        var apiurl  =  '/api/' + action;
+        console.info('POST', apiurl, data);
+        return $http({
+            method : 'POST'
+            , url  : apiurl
+            , data : $.param( data )
+            , headers : {'Content-Type': 'application/x-www-form-urlencoded'}
+        }).success( callback );
+    };
+
+
+    var get  =  function( action, args, callback ) {
         var apiurl  =  '/api/' + action + '/';
-        var data    =  null;
-        var done    =  nothing;
-        var arg     =  null;
-        while ( arg = args.shift( ) ) {
-            switch ( typeof arg ) {
-                case 'function':
-                    done = arg;
-                    break;
-                case 'string':
-                case 'number':
-                    apiurl += arg + '/';
-                    break;
-                case 'object':
-                    if ( arg instanceof Array ) {
-                        apiurl += arg.join( '/' ) + '/';
-                    }
-                    else {
-                        data = JSON.stringify( arg );
-                    }
-                    break;
-            }
+        if ( typeof args != Object ) { 
+            apiurl  +=  args;
         }
-        if ( data ) {
-            console.info('POST', apiurl, data);
-            $http({
-                method : 'POST'
-                , url  : apiurl
-                , data : $.param( { value : data } )
-                , headers : {'Content-Type': 'application/x-www-form-urlencoded'}
-            }).success( done );
+        else if ( args ) {
+            apiurl  +=  args.join( '/' );
         }
-        else {
-            console.info('GET', apiurl);
-            $http.get( apiurl ).success( done );
-        }
+        console.info('GET', apiurl);
+        return $http.get( apiurl ).success( callback );
     };
 
 	$scope.browselists  =  function( ) {
@@ -105,7 +89,7 @@ cwfm.playlist.ctrl  =  function( $scope, $http, $roomservice ) {
 
     $scope.select  =  function( pl ) {
         $scope.selected = pl;
-        api( 'selectplaylist', [ $scope.roomname, pl.plid ], on_loadplaylist );
+        post( [ 'selectplaylist', $roomservice.get_name( ) ], { plid : pl.plid }, on_loadplaylist );
     };
 
     $scope.search  =  function( ) {
@@ -114,7 +98,7 @@ cwfm.playlist.ctrl  =  function( $scope, $http, $roomservice ) {
             $scope.results  =  [];
             return;
         }
-        api( 'search', [ terms ], on_search );
+        get( 'search', [ terms ], on_search );
     };
 
     $scope.togglesong  =  function( song, inlist ) {
@@ -123,14 +107,10 @@ cwfm.playlist.ctrl  =  function( $scope, $http, $roomservice ) {
             return;
         }
 
-        var data  =  { 
-            plid   : $scope.selected.plid
-            , song : song
-        };
-
         var action  =  inlist ? 'addplaylistsong' : 'removeplaylistsong';
+        var data    =  { plid : $scope.selected.plid, song : JSON.stringify( song ) };
 
-        api( action, data, on_loadplaylist );
+        post( action, data, on_loadplaylist );
     };
 
     $scope.addsong  =  function( song ) {
@@ -142,13 +122,12 @@ cwfm.playlist.ctrl  =  function( $scope, $http, $roomservice ) {
     };
 
     $scope.save  =  function( ) {
-        var data  =  {
-            public         : $scope.selected.public
-            , playlistname : $scope.selected.title
-            , playlistid   : $scope.selected.plid
+        var data  =  { 
+            'public' : $scope.selected.public, 
+            'title'  : $scope.selected.title, 
+            'plid'   : $scope.selected.plid
         };
-
-        api( 'saveplaylist', data, on_saveplaylist );
+        post( 'saveplaylist', data, on_saveplaylist );
     };
 
     init( );

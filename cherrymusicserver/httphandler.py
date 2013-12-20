@@ -261,13 +261,14 @@ everybody has to relogin now.''')
     trans.exposed = True
     trans._cp_config = {'response.stream': True}
 
-    def api(self, *args, **kwargs):
+    def api(self, *get, **post):
         """calls the appropriate handler from the handlers
         dict, if available. handlers having noauth set to
         true do not need authentification to work.
         """
         #check action
-        action = args[0] if args else ''
+        action = get[0] if get else ''
+        get    = get[1:] if get else []
         if not action in self.handlers:
             return "Error: no such action."
         #authorize if not explicitly deactivated
@@ -275,16 +276,18 @@ everybody has to relogin now.''')
         needsAuth = not ('noauth' in dir(handler) and handler.noauth)
         if needsAuth and not self.isAuthorized():
             raise cherrypy.HTTPError(401, 'Unauthorized')
-        #parse value (is list of arguments, but if the list has only
-        #one element, this element is directly passed to the handler)
-        value = kwargs.get('value', '')
-        if value:
-            value = json.loads(value)
-        if not value and len(args) > 1:
-            value = list(map(unquote, args[1:len(args)]))
-            if len(value) == 1:
-                value = value[0]
-        return handler(value)
+
+        if len(get) == 1:
+            get = get[0]
+
+        if not get and not post:
+            return handler( )
+        if not post:
+            return handler(get)
+        elif not get:
+            return handler(post)
+        else:
+            return handler(get, post)
     api.exposed = True
 
     def api_customcss(self, value):
@@ -540,29 +543,24 @@ everybody has to relogin now.''')
     def api_rememberplaylist(self, value):
         cherrypy.session['playlist'] = value
 
-    def api_saveplaylist(self, value):
-        pl = json.loads(value)
+    def api_saveplaylist(self, values):
         rsp = self.playlistdb.savePlaylist(
             userid=self.getUserId(),
-            public=pl.get('public'),
-            playlisttitle=pl['playlistname'],
-            playlistid=pl.get('playlistid', None))
+            public=values.get('public', False),
+            playlisttitle=values.get('title', 'Playlist'),
+            playlistid=values.get('plid', None))
         return json.dumps(rsp)
 
-    def api_addplaylistsong(self, value):
-        pl = json.loads(value)
-        songs = self.playlistdb.addSong(
-                self.getUserId(), 
-                pl['plid'], 
-                pl['song'])
+    def api_addplaylistsong(self, values):
+        plid = values['plid']
+        song = json.loads(values['song'])
+        songs = self.playlistdb.addSong(self.getUserId(), plid, song)
         return self.jsonrenderer.render(songs)
 
-    def api_removeplaylistsong(self, value):
-        pl = json.loads(value)
-        songs = self.playlistdb.removeSong(
-                self.getUserId(), 
-                pl['plid'], 
-                pl['song'])
+    def api_removeplaylistsong(self, values):
+        plid = values['plid']
+        song = json.loads(values['song'])
+        songs = self.playlistdb.removeSong(self.getUserId(), plid, song)
         return self.jsonrenderer.render(songs)
 
     def api_deleteplaylist(self, value):
@@ -655,7 +653,7 @@ everybody has to relogin now.''')
         else:
             return "You didn't think that would work, did you?"
 
-    def api_showplaylists(self, value):
+    def api_showplaylists(self):
         playlists = self.playlistdb.showPlaylists(self.getUserId())
         #translate userids to usernames:
         for pl in playlists:
@@ -746,9 +744,9 @@ everybody has to relogin now.''')
         return self.roompage
     room.exposed = True
 
-    def api_selectplaylist(self, values):
-        (room, plid) = values
+    def api_selectplaylist(self, room, values):
         if not room in self.rooms: return
+        plid = values.get('plid', None)
         self.rooms[room].select_playlist(self.getUserId(), plid)
         return self.api_loadplaylist(plid)
 
@@ -786,18 +784,15 @@ everybody has to relogin now.''')
         self.rooms[room].leave(uid)
         return self.api_roominfo(room)
 
-    def api_say(self, values):
-        (room, msg) = values
+    def api_say(self, room, data):
         if room not in self.rooms: return
+        msg  = data.get('message', 'Quack!')
         uid = self.getUserId()
         log.d("Member {0} said '{1}' in {2}.".format(uid, msg, room))
         return json.dumps(self.rooms[room].say(uid, msg))
 
     def api_chatter(self, values):
-        if isinstance(values, str):
-            (room, after) = (values, None)
-        else: 
-            (room, after) = values
+        (room, after) = values
         if room not in self.rooms: return
         chatting = self.rooms[room].chatter.dict(after)
         return json.dumps(chatting)

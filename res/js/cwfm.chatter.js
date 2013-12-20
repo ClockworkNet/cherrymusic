@@ -8,11 +8,7 @@ cwfm.chatter.ctrl  =  function( $scope, $http, $roomservice ) {
     $scope.last_id  =  0;
 
     var refresh  =  function( ) {
-        var apiurl  =  '/api/chatter/' + $roomservice.get_name( );
-        if ( $scope.last_id ) {
-            apiurl  +=  '/' + $scope.last_id;
-        }
-
+        var apiurl   =  '/api/chatter/' + $roomservice.get_name( ) + '/' + $scope.last_id;
         var request  =  $http.get( apiurl );
 
         request.success( function( rsp ) {
@@ -44,13 +40,11 @@ cwfm.chatter.ctrl  =  function( $scope, $http, $roomservice ) {
     };
 
     $scope.send  =  function( ) {
-        var apiurl  = '/api/say/';
-        var msg     = $scope.message;
-        var data    = [ $roomservice.get_name( ), msg ];
+        var apiurl  = '/api/say/' + $roomservice.get_name( );
         $http({
             method : 'POST'
             , url  : apiurl
-            , data : $.param( { value : JSON.stringify( data ) } )
+            , data : $.param( { 'message' : $scope.message } )
             , headers : {'Content-Type': 'application/x-www-form-urlencoded'}
         }).success( function( rsp ) {
             $scope.message  =  '';
