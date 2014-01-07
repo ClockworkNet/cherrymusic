@@ -157,6 +157,11 @@ class HTTPHandler(object):
             url = 'http://' + ipAndPort
         return url
 
+    @cherrypy.expose
+    def ws(self):
+        # Exposes the websocket connection
+        handler = cherrypy.request.ws_handler
+
     def index(self, *args, **kwargs):
         self.getBaseUrl(redirect_unencrypted=True)
         firstrun = 0 == self.userdb.getUserCount()

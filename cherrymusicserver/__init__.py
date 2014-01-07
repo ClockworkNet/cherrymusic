@@ -45,6 +45,9 @@ import os
 import codecs
 import cherrypy
 
+from ws4py.server.cherrypyserver import WebSocketPlugin, WebSocketTool
+from cherrymusicserver import websockets
+
 cherrypyReqVersion = '3'
 cherrypyCurrVersion = str(cherrypy.__version__)
 if cherrypyCurrVersion < cherrypyReqVersion:
@@ -329,6 +332,10 @@ Have fun!
                     'tools.encode.encoding': 'utf-8',
                     'tools.caching.on': False,
                 },
+                '/ws': {
+                    'tools.websocket.on': True,
+                    'tools.websocket.handler_cls': websockets.RoomWebSocket,
+                },
                 '/favicon.ico': {
                     'tools.staticfile.on': True,
                     'tools.staticfile.filename': resourcedir + '/favicon.ico',
@@ -340,5 +347,11 @@ Have fun!
         cherrypy.engine.block()
 
     def server(self, httphandler):
-        cherrypy.config.update({'log.screen': True})
+        cherrypy.config.update({
+            'log.screen': True,
+            'server.socket_port': 9000,
+            })
+        WebSocketPlugin(cherrypy.engine).subscribe()
+        cherrypy.tools.websocket = WebSocketTool()
+
         self.start(httphandler)
